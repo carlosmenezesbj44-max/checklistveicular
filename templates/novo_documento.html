@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Documento - {{ veiculo.placa }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('listar_documentos', veiculo_id=veiculo.id) }}">Documentos</a></li>
+            <li class="breadcrumb-item active">Novo Documento</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <h1 class="mb-4">
+        <i class="bi bi-file-earmark-plus"></i> Novo Documento
+    </h1>
+
+    <!-- Formulário -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{{ veiculo.modelo }} - {{ veiculo.placa }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Estado do Veículo -->
+                        <div class="mb-3">
+                            <label for="estado_uf" class="form-label">Estado (UF) *</label>
+                            <select class="form-select" id="estado_uf" name="estado_uf" required onchange="atualizarDicaVencimento()">
+                                <option value="">Selecione o estado...</option>
+                                {% for estado in estados %}
+                                <option value="{{ estado }}" {% if estado == estado_padrao %}selected{% endif %}>
+                                    {{ estado }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Estado onde o veículo está registrado</small>
+                        </div>
+
+                        <!-- Tipo de Documento -->
+                        <div class="mb-3">
+                            <label for="tipo_documento" class="form-label">Tipo de Documento *</label>
+                            <select class="form-select" id="tipo_documento" name="tipo_documento" required onchange="atualizarDicaVencimento()">
+                                <option value="">Selecione um tipo...</option>
+                                {% for tipo in tipos_documentos %}
+                                <option value="{{ tipo }}">{{ tipo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Dica de Vencimento por Estado -->
+                        <div class="mb-3" id="dica_vencimento" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> 
+                                <strong id="texto_dica">Selecione o estado e tipo de documento</strong>
+                            </div>
+                        </div>
+
+                        <!-- Número do Documento -->
+                        <div class="mb-3">
+                            <label for="numero_documento" class="form-label">Número do Documento</label>
+                            <input type="text" class="form-control" id="numero_documento" name="numero_documento" 
+                                   placeholder="Ex: ABC-1234">
+                        </div>
+
+                        <!-- Data de Emissão -->
+                        <div class="mb-3">
+                            <label for="data_emissao" class="form-label">Data de Emissão</label>
+                            <input type="date" class="form-control" id="data_emissao" name="data_emissao">
+                        </div>
+
+                        <!-- Data de Vencimento -->
+                        <div class="mb-3">
+                            <label for="data_vencimento" class="form-label">Data de Vencimento *</label>
+                            <input type="date" class="form-control" id="data_vencimento" name="data_vencimento" required>
+                            <small class="text-muted">Data em que o documento vence</small>
+                        </div>
+
+                        <!-- Dias para Alerta -->
+                        <div class="mb-3">
+                            <label for="dias_antecedencia" class="form-label">Antecedência para Alerta (dias)</label>
+                            <input type="number" class="form-control" id="dias_antecedencia" name="dias_antecedencia" 
+                                   value="15" min="1" max="365">
+                            <small class="text-muted">Quantos dias antes do vencimento gerar alerta</small>
+                        </div>
+
+                        <!-- Foto do Documento -->
+                        <div class="mb-3">
+                            <label for="foto_documento" class="form-label">Foto/Cópia do Documento</label>
+                            <input type="file" class="form-control" id="foto_documento" name="foto_documento" 
+                                   accept="image/*,.pdf">
+                            <small class="text-muted">Máximo 5MB (JPG, PNG, GIF ou PDF)</small>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3" 
+                                      placeholder="Notas adicionais sobre o documento..."></textarea>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('listar_documentos', veiculo_id=veiculo.id) }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Salvar Documento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Informações -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Informações</h6>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Estado:</strong> Cada estado tem datas de vencimento diferentes (IPVA, Inspeção, etc)</li>
+                        <li><strong>Tipos Comum:</strong> CNH, CRLV, Seguro, Revisão, Inspeção Veicular, Licenciamento, IPVA</li>
+                        <li><strong>Alarme:</strong> Você receberá notificações automaticamente quando o documento estiver próximo do vencimento</li>
+                        <li><strong>Antecedência:</strong> Defina quantos dias antes do vencimento deseja ser alertado</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Lateral -->
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">Veículo</h6>
+                    <p class="mb-2">
+                        <strong>Placa:</strong> {{ veiculo.placa }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Modelo:</strong> {{ veiculo.modelo }}
+                    </p>
+                    <p>
+                        <strong>Tipo:</strong> {{ veiculo.tipo or 'N/A' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Calendário de Vencimentos -->
+            <div class="card mt-3">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="bi bi-calendar-event"></i> Calendário de Vencimentos</h6>
+                </div>
+                <div class="card-body">
+                    <small id="calendario_info" class="text-muted">
+                        Selecione o estado e tipo de documento para ver a data de vencimento típica
+                    </small>
+                    <div id="calendario_content" style="margin-top: 10px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const vencimentosPorEstado = {{ vencimentos_json | tojson }};
+
+function atualizarDicaVencimento() {
+    const estado = document.getElementById('estado_uf').value;
+    const tipoDoc = document.getElementById('tipo_documento').value;
+    const dicaDiv = document.getElementById('dica_vencimento');
+    const textoDica = document.getElementById('texto_dica');
+    const calendarDiv = document.getElementById('calendario_content');
+    
+    if (!estado || !tipoDoc) {
+        dicaDiv.style.display = 'none';
+        calendarDiv.innerHTML = '';
+        return;
+    }
+    
+    // Mapear tipo de documento para buscar na tabela
+    const tipoMap = {
+        'IPVA': 'IPVA',
+        'Inspeção Veicular': 'INSPECAO',
+        'Revisão': 'REVISAO',
+        'CRLV': 'IPVA',  // CRLV segue IPVA
+    };
+    
+    const tipoMapeado = tipoMap[tipoDoc];
+    
+    if (tipoMapeado && vencimentosPorEstado[estado] && vencimentosPorEstado[estado][tipoMapeado]) {
+        const mesVenc = vencimentosPorEstado[estado][tipoMapeado];
+        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        const mesNome = meses[parseInt(mesVenc) - 1];
+        textoDica.textContent = `${tipoDoc} em ${estado} vence em ${mesNome}`;
+        dicaDiv.style.display = 'block';
+        
+        calendarDiv.innerHTML = `<strong>${mesNome}</strong> é o mês de vencimento típico`;
+    } else {
+        dicaDiv.style.display = 'none';
+        calendarDiv.innerHTML = '<small class="text-muted">Sem data padrão para este tipo de documento</small>';
+    }
+}
+
+// Inicializar dicas ao carregar
+document.addEventListener('DOMContentLoaded', function() {
+    // Buscar dados de vencimentos do servidor
+    fetch('/api/vencimentos-estado')
+        .then(r => r.json())
+        .then(data => {
+            window.vencimentosPorEstado = data;
+            atualizarDicaVencimento();
+        })
+        .catch(e => console.log('Aviso: Dados de vencimentos não disponíveis'));
+});
+</script>
+{% endblock %}

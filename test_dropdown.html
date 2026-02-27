@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Dropdown Condutores</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+    <h1>Teste do Dropdown de Condutores</h1>
+    
+    <div class="col-md-4" style="position: relative; margin-top: 30px;">
+        <label class="form-label fw-semibold">
+            <i class="bi bi-person me-2"></i>Condutor
+        </label>
+        <div class="input-group">
+            <input type="text" class="form-control" id="condutor" name="condutor"
+                required placeholder="Digite o nome do condutor..." autocomplete="off">
+            <button class="btn btn-outline-secondary" type="button"
+                id="btnListarCondutores" title="Clique para ver todos os condutores">
+                <i class="bi bi-list"></i> Listar
+            </button>
+        </div>
+        <div id="dropdownCondutores" style="display: none; position: absolute; top: calc(100% + 2px); left: 0; right: 0; max-height: 300px; overflow-y: auto; background-color: #fff; border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;">
+        </div>
+    </div>
+
+    <hr>
+    <h3>Console (Abra F12 para ver):</h3>
+    <pre id="console-output" style="background: #f0f0f0; padding: 10px; height: 200px; overflow-y: auto;"></pre>
+
+    <script>
+    let condutoresDisponibles = [];
+
+    function addLog(msg) {
+        const output = document.getElementById('console-output');
+        output.textContent += msg + '\n';
+        output.scrollTop = output.scrollHeight;
+        console.log(msg);
+    }
+
+    async function carregarCondutores() {
+        try {
+            addLog('Carregando condutores de: /api/condutores/listar');
+            const response = await fetch('/api/condutores/listar');
+            addLog('Status da resposta: ' + response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            condutoresDisponibles = await response.json();
+            addLog('Condutores carregados: ' + condutoresDisponibles.length);
+            condutoresDisponibles.forEach(c => {
+                addLog(`  - ${c.nome} (${c.cpf || 'sem CPF'})`);
+            });
+        } catch (error) {
+            addLog('ERRO: ' + error.message);
+        }
+    }
+
+    function mostrarDropdownCondutores(filtro = '') {
+        const dropdown = document.getElementById('dropdownCondutores');
+        const input = document.getElementById('condutor');
+        
+        addLog('Mostrando dropdown com filtro: "' + filtro + '"');
+        addLog('Total de condutores disponíveis: ' + condutoresDisponibles.length);
+        
+        if (!dropdown) return;
+        
+        if (condutoresDisponibles.length === 0) {
+            dropdown.innerHTML = '<div class="dropdown-item disabled" style="padding: 10px; color: #999;">Nenhum condutor cadastrado</div>';
+            dropdown.style.display = 'block';
+            addLog('Mostrando mensagem: Nenhum condutor cadastrado');
+            return;
+        }
+        
+        let condutoresFiltrados = condutoresDisponibles;
+        
+        if (filtro.trim()) {
+            condutoresFiltrados = condutoresDisponibles.filter(c => 
+                c.nome.toLowerCase().includes(filtro.toLowerCase())
+            );
+        }
+        
+        if (condutoresFiltrados.length === 0) {
+            dropdown.innerHTML = '<div class="dropdown-item disabled" style="padding: 10px; color: #999;">Nenhum condutor encontrado para "' + filtro + '"</div>';
+            dropdown.style.display = 'block';
+            addLog('Mostrando mensagem: Nenhum condutor encontrado');
+            return;
+        }
+        
+        dropdown.innerHTML = condutoresFiltrados
+            .map(c => `
+            <div class="dropdown-item" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;" data-condutor="${c.nome}">
+                <strong>${c.nome}</strong>
+                <small style="color: #999;">${c.cpf || ''}</small>
+            </div>
+        `)
+        .join('');
+        
+        addLog('HTML do dropdown gerado, itens: ' + condutoresFiltrados.length);
+        dropdown.style.display = 'block';
+        addLog('Dropdown visível: ' + (dropdown.offsetHeight > 0));
+        
+        // Adicionar event listeners aos itens
+        dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                input.value = this.getAttribute('data-condutor');
+                dropdown.style.display = 'none';
+                addLog('Condutor selecionado: ' + this.getAttribute('data-condutor'));
+            });
+        });
+    }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function () {
+        addLog('Página carregada - iniciando...');
+        carregarCondutores();
+        
+        const inputCondutor = document.getElementById('condutor');
+        const btnListarCondutores = document.getElementById('btnListarCondutores');
+        const dropdownCondutores = document.getElementById('dropdownCondutores');
+        
+        if (inputCondutor && btnListarCondutores) {
+            btnListarCondutores.addEventListener('click', function() {
+                addLog('Botão clicado');
+                mostrarDropdownCondutores();
+            });
+            
+            inputCondutor.addEventListener('input', function() {
+                if (this.value.trim().length > 0) {
+                    mostrarDropdownCondutores(this.value);
+                } else {
+                    dropdownCondutores.style.display = 'none';
+                }
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('[data-condutor]') && e.target.id !== 'condutor' && e.target.id !== 'btnListarCondutores') {
+                    dropdownCondutores.style.display = 'none';
+                }
+            });
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Documento - {{ veiculo.placa }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('listar_documentos', veiculo_id=veiculo.id) }}">Documentos</a></li>
+            <li class="breadcrumb-item active">Editar Documento</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <h1 class="mb-4">
+        <i class="bi bi-file-earmark-edit"></i> Editar Documento
+    </h1>
+
+    <!-- Formulário -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{{ veiculo.modelo }} - {{ veiculo.placa }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Tipo de Documento -->
+                        <div class="mb-3">
+                            <label for="tipo_documento" class="form-label">Tipo de Documento *</label>
+                            <select class="form-select" id="tipo_documento" name="tipo_documento" required>
+                                <option value="">Selecione um tipo...</option>
+                                {% for tipo in tipos_documentos %}
+                                <option value="{{ tipo }}" {% if tipo == documento.tipo_documento %}selected{% endif %}>{{ tipo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Número do Documento -->
+                        <div class="mb-3">
+                            <label for="numero_documento" class="form-label">Número do Documento</label>
+                            <input type="text" class="form-control" id="numero_documento" name="numero_documento" 
+                                   value="{{ documento.numero_documento or '' }}" placeholder="Ex: ABC-1234">
+                        </div>
+
+                        <!-- Data de Emissão -->
+                        <div class="mb-3">
+                            <label for="data_emissao" class="form-label">Data de Emissão</label>
+                            <input type="date" class="form-control" id="data_emissao" name="data_emissao" 
+                                   value="{{ documento.data_emissao or '' }}">
+                        </div>
+
+                        <!-- Data de Vencimento -->
+                        <div class="mb-3">
+                            <label for="data_vencimento" class="form-label">Data de Vencimento *</label>
+                            <input type="date" class="form-control" id="data_vencimento" name="data_vencimento" 
+                                   value="{{ documento.data_vencimento or '' }}" required>
+                            <small class="text-muted">Data em que o documento vence</small>
+                        </div>
+
+                        <!-- Dias para Alerta -->
+                        <div class="mb-3">
+                            <label for="dias_antecedencia" class="form-label">Antecedência para Alerta (dias)</label>
+                            <input type="number" class="form-control" id="dias_antecedencia" name="dias_antecedencia" 
+                                   value="{{ documento.dias_antecedencia or 15 }}" min="1" max="365">
+                            <small class="text-muted">Quantos dias antes do vencimento gerar alerta</small>
+                        </div>
+
+                        <!-- Foto do Documento -->
+                        <div class="mb-3">
+                            <label for="foto_documento" class="form-label">Foto/Cópia do Documento</label>
+                            
+                            {% if documento.foto_documento %}
+                            <div class="mb-2">
+                                <small class="text-muted">Arquivo atual:</small><br>
+                                <a href="{{ url_for('static', filename='uploads/' ~ documento.foto_documento) }}" 
+                                   target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-image"></i> Ver arquivo
+                                </a>
+                            </div>
+                            {% endif %}
+                            
+                            <input type="file" class="form-control" id="foto_documento" name="foto_documento" 
+                                   accept="image/*,.pdf">
+                            <small class="text-muted">Máximo 5MB (JPG, PNG, GIF ou PDF)</small>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3" 
+                                      placeholder="Notas adicionais sobre o documento...">{{ documento.observacoes or '' }}</textarea>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('listar_documentos', veiculo_id=veiculo.id) }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Informações de Data -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Status</h6>
+                </div>
+                <div class="card-body">
+                    {% set data_venc = documento.data_vencimento.split('-') if documento.data_vencimento else [] %}
+                    {% if data_venc|length == 3 %}
+                        {% set dias = (data_venc[0] ~ '-' ~ data_venc[1] ~ '-' ~ data_venc[2])|as_datetime - now|as_datetime %}
+                        {% if dias.days < 0 %}
+                            <div class="alert alert-danger">
+                                <strong>Documento Vencido há {{ -dias.days }} dias</strong>
+                            </div>
+                        {% elif dias.days == 0 %}
+                            <div class="alert alert-danger">
+                                <strong>Documento Vence Hoje</strong>
+                            </div>
+                        {% elif dias.days <= 15 %}
+                            <div class="alert alert-warning">
+                                <strong>Documento vence em {{ dias.days }} dias</strong>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-success">
+                                <strong>Documento vence em {{ dias.days }} dias</strong>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Lateral -->
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">Veículo</h6>
+                    <p class="mb-2">
+                        <strong>Placa:</strong> {{ veiculo.placa }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Modelo:</strong> {{ veiculo.modelo }}
+                    </p>
+                    <p class="mb-3">
+                        <strong>Tipo:</strong> {{ veiculo.tipo or 'N/A' }}
+                    </p>
+                    
+                    <hr>
+                    
+                    <h6 class="card-title mb-3">Documento</h6>
+                    <p class="mb-2">
+                        <strong>Tipo:</strong> {{ documento.tipo_documento }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Criado em:</strong> {{ documento.criado_em or 'N/A' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

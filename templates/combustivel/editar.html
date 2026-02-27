@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 mb-0">Editar Registro de Combustível</h2>
+    <div>
+      <a href="{{ url_for('combustivel') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form action="{{ url_for('editar_combustivel', combustivel_id=reg.id) }}" method="post" class="needs-validation" novalidate enctype="multipart/form-data">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="alert alert-info">
+              <strong>ID do Registro:</strong> {{ reg.id }} | <strong>Data de Criação:</strong> {{ reg.created_at or '-' }}
+            </div>
+          </div>
+          
+          <div class="col-md-3">
+            <label class="form-label">Placa do Veículo <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="placa" placeholder="AAA-1234" value="{{ reg.placa or '' }}" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Tipo de Veículo <span class="text-danger">*</span></label>
+            <select class="form-select" name="tipo_veiculo" required>
+              <option value="">Selecione...</option>
+              <option value="Carro" {% if reg.tipo_veiculo == 'Carro' %}selected{% endif %}>Carro</option>
+              <option value="Moto" {% if reg.tipo_veiculo == 'Moto' %}selected{% endif %}>Moto</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Data do Abastecimento <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" name="data_abastecimento" value="{{ reg.data_abastecimento or '' }}" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Quilometragem <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" name="quilometragem" placeholder="Ex: 12300" value="{{ reg.quilometragem or '' }}" required>
+          </div>
+          
+          <div class="col-md-3">
+            <label class="form-label">Quantidade de Litros <span class="text-danger">*</span></label>
+            <input type="number" step="0.01" class="form-control" name="quantidade_litros" placeholder="Ex: 45.5" value="{{ reg.quantidade_litros or '' }}" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Valor Total (R$) <span class="text-danger">*</span></label>
+            <input type="number" step="0.01" class="form-control" name="valor_total" placeholder="Ex: 250.50" value="{{ reg.valor_total or '' }}" required>
+          </div>
+          
+          <div class="col-12">
+            <label class="form-label">Observações</label>
+            <textarea class="form-control" name="observacoes" rows="3" placeholder="Observações adicionais (opcional)">{{ reg.observacoes or '' }}</textarea>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Foto da Nota Fiscal <span class="text-muted">(opcional)</span></label>
+            {% if reg.nota_fiscal_foto %}
+              <div class="mb-2">
+                <p class="mb-2"><strong>Foto atual:</strong></p>
+                <a href="{{ url_for('uploads', filename=reg.nota_fiscal_foto) }}" target="_blank">
+                  <img src="{{ url_for('uploads', filename=reg.nota_fiscal_foto) }}" style="max-width: 200px; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                </a>
+              </div>
+            {% endif %}
+            <input type="file" class="form-control" name="nota_fiscal_foto" accept="image/*" id="notaFiscalFoto">
+            <small class="text-muted">Formatos aceitos: JPG, PNG, GIF, WEBP (deixe em branco para manter a foto atual)</small>
+            <div id="previewContainer" style="margin-top: 10px;"></div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+          <button type="submit" class="btn btn-lg btn-primary">
+            <i class="bi bi-save"></i> Atualizar Registro
+          </button>
+          <a href="{{ url_for('combustivel') }}" class="btn btn-lg btn-outline-secondary">
+            <i class="bi bi-x-circle"></i> Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    'use strict'
+    const forms = document.querySelectorAll('.needs-validation')
+    Array.from(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+  })()
+
+  document.getElementById('notaFiscalFoto').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    const previewContainer = document.getElementById('previewContainer');
+    previewContainer.innerHTML = '';
+
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.maxWidth = '200px';
+        img.style.maxHeight = '200px';
+        img.style.borderRadius = '8px';
+        img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        previewContainer.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    } else if (file) {
+      previewContainer.innerHTML = '<div class="alert alert-warning">Arquivo selecionado: ' + file.name + '</div>';
+    }
+  });
+</script>
+{% endblock %}

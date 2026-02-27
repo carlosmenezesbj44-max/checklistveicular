@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    {% if current_user.is_admin %}
+    <div class="mb-3">
+      <a href="{{ url_for('auth.register') }}" class="btn btn-success w-100 mb-2">
+        <i class="bi bi-plus-circle"></i> Criar Novo Usuário
+      </a>
+      <div class="d-grid gap-2">
+        <a href="{{ url_for('backup') }}" class="btn btn-info">
+          <i class="bi bi-download"></i> Fazer Download do Backup
+        </a>
+      </div>
+      <div class="mt-2">
+        <button type="button" class="btn btn-warning w-100" data-bs-toggle="collapse" data-bs-target="#uploadBackupForm">
+          <i class="bi bi-upload"></i> Restaurar Backup
+        </button>
+        <div class="collapse mt-2" id="uploadBackupForm">
+          <div class="card card-body">
+            <form method="POST" action="{{ url_for('restore') }}" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="backup_file" class="form-label">Selecione o arquivo de backup (.zip)</label>
+                <input type="file" class="form-control" id="backup_file" name="backup_file" accept=".zip" required>
+                <small class="form-text text-muted d-block mt-2">Apenas arquivos .zip são aceitos</small>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-warning">
+                  <i class="bi bi-check-circle"></i> Restaurar
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#uploadBackupForm">
+                  <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    
+    <div class="card shadow-sm">
+      <div class="card-header bg-white">
+        <h5 class="card-title mb-0">Editar Perfil</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('auth.edit_profile') }}" enctype="multipart/form-data">
+          <div class="mb-3 text-center">
+            <label for="profile_photo" class="form-label d-block mb-3">Foto de Perfil</label>
+            <div class="profile-photo-container mb-3">
+              {% if current_user.profile_photo %}
+              <img id="photoPreview" src="{{ url_for('static', filename='uploads/' + current_user.profile_photo) }}" 
+                   alt="Foto de perfil" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #10b981;">
+              {% else %}
+              <img id="photoPreview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect fill='%23e9ecef' width='150' height='150'/%3E%3Ctext x='50%25' y='50%25' font-size='40' fill='%236c757d' text-anchor='middle' dominant-baseline='middle'%3E%3C/text%3E%3Ccircle cx='75' cy='50' r='25' fill='%236c757d'/%3E%3Cpath d='M 40 120 Q 75 100 110 120 L 110 150 L 40 150 Z' fill='%236c757d'/%3E%3C/svg%3E" 
+                   alt="Sem foto" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #dee2e6;">
+              {% endif %}
+            </div>
+            <input type="file" class="form-control" id="profile_photo" name="profile_photo" 
+                   accept="image/jpeg,image/jpg,image/png,image/gif" 
+                   onchange="previewPhoto(this)">
+            <small class="form-text text-muted d-block mt-2">JPG, PNG ou GIF (máx. 5MB)</small>
+          </div>
+          
+          <hr class="my-4">
+          
+          <div class="mb-3">
+            <label for="username" class="form-label">Nome de Usuário</label>
+            <input type="text" class="form-control" id="username" name="username" 
+                   value="{{ current_user.username }}" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="email" class="form-label">E-mail</label>
+            <input type="email" class="form-control" id="email" name="email" 
+                   value="{{ current_user.email or '' }}" placeholder="seu@email.com">
+            <div class="form-text">Opcional, mas necessário para recuperação de senha.</div>
+          </div>
+          
+          <hr class="my-4">
+          <h6 class="mb-3">Alterar Senha</h6>
+          
+          <div class="mb-3">
+            <label for="current_password" class="form-label">Senha Atual</label>
+            <div class="input-group">
+              <input type="password" class="form-control" id="current_password" 
+                     name="current_password" placeholder="Deixe em branco para manter a senha atual">
+              <button class="btn btn-outline-secondary toggle-password" type="button" data-target="current_password">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="new_password" class="form-label">Nova Senha</label>
+            <div class="input-group">
+              <input type="password" class="form-control" id="new_password" 
+                     name="new_password" placeholder="Preencha apenas se desejar alterar">
+              <button class="btn btn-outline-secondary toggle-password" type="button" data-target="new_password">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="form-text">Deixe em branco para manter a senha atual.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="confirm_password" class="form-label">Confirme a Nova Senha</label>
+            <div class="input-group">
+              <input type="password" class="form-control" id="confirm_password" 
+                     name="confirm_password" placeholder="Confirme a nova senha">
+              <button class="btn btn-outline-secondary toggle-password" type="button" data-target="confirm_password">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="d-flex justify-content-between align-items-center gap-2">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-x-circle"></i> Cancelar
+            </a>
+            <div>
+              {% if current_user.is_admin %}
+              <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                <i class="bi bi-trash"></i> Deletar Conta
+              </button>
+              {% endif %}
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Salvar Alterações
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Arquivo muito grande! Máximo de 5MB.');
+      input.value = '';
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('photoPreview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const toggleButtons = document.querySelectorAll('.toggle-password');
+  toggleButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetId = this.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      const icon = this.querySelector('i');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+      }
+    });
+  });
+  
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', function(event) {
+      const newPassword = document.getElementById('new_password').value;
+      const confirmPassword = document.getElementById('confirm_password').value;
+      
+      if (newPassword || confirmPassword) {
+        if (newPassword.length < 8) {
+          alert('A nova senha deve ter pelo menos 8 caracteres.');
+          event.preventDefault();
+          return false;
+        }
+        
+        if (newPassword !== confirmPassword) {
+          alert('As senhas não conferem. Por favor, digite novamente.');
+          event.preventDefault();
+          return false;
+        }
+      }
+    });
+  }
+});
+});
+</script>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deleteAccountLabel">
+          <i class="bi bi-exclamation-triangle"></i> Deletar Conta
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" role="alert">
+          <strong>Atenção!</strong> Esta ação é irreversível.
+        </div>
+        <p>Tem certeza que deseja deletar sua conta de usuário?</p>
+        <ul class="small text-muted">
+          <li>Todos os seus dados serão removidos permanentemente</li>
+          <li>Não será possível recuperar a conta ou os dados</li>
+          <li>Esta ação afetará todos os registros associados a este usuário</li>
+        </ul>
+        <div class="mb-3">
+          <label for="confirmUsername" class="form-label">
+            Digite seu nome de usuário para confirmar:
+          </label>
+          <input type="text" class="form-control" id="confirmUsername" placeholder="Nome de usuário">
+          <small class="form-text text-muted">{{ current_user.username }}</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
+          <i class="bi bi-trash"></i> Deletar Permanentemente
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmDelete() {
+  const confirmUsername = document.getElementById('confirmUsername').value;
+  const currentUsername = '{{ current_user.username }}';
+  
+  if (confirmUsername !== currentUsername) {
+    alert('Nome de usuário não corresponde. Digite corretamente para confirmar a exclusão.');
+    return;
+  }
+  
+  // Enviar requisição para deletar a conta
+  fetch('{{ url_for("auth.delete_account") }}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      confirm: true
+    })
+  })
+  .then(response => {
+    if (response.ok) {
+      window.location.href = '{{ url_for("auth.login") }}';
+    } else {
+      alert('Erro ao deletar conta. Tente novamente.');
+    }
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    alert('Erro ao deletar conta.');
+  });
+}
+</script>
+{% endblock %}

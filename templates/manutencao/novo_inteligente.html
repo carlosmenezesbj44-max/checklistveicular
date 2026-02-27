@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="bi bi-plus-circle"></i> Nova Manutenção - Dashboard Inteligente
+            </h5>
+            <button type="button" class="btn btn-sm btn-light" onclick="toggleDashboard()">
+              <i class="bi bi-speedometer2"></i> Modo Rápido
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Dashboard Inteligente -->
+          <div id="dashboardInteligente" class="mb-4">
+            <div class="alert alert-info">
+              <i class="bi bi-lightbulb"></i>
+              <strong>Dashboard Inteligente:</strong> Selecione o tipo de manutenção e o sistema preencherá automaticamente os valores recomendados!
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="selectVeiculo" class="form-label">
+                  <i class="bi bi-truck me-2"></i>Veículo
+                </label>
+                <select class="form-select" id="selectVeiculo" name="veiculo_id" required>
+                  <option value="">Selecione o veículo...</option>
+                  {% for v in veiculos %}
+                  <option value="{{ v.id }}">{{ v.placa }} - {{ v.modelo }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="selectTipoManutencao" class="form-label">
+                  <i class="bi bi-gear me-2"></i>Tipo de Manutenção
+                </label>
+                <select class="form-select" id="selectTipoManutencao" name="tipo_manutencao">
+                  <option value="">Selecione o tipo...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="selectPeca" class="form-label">
+                  <i class="bi bi-tools me-2"></i>Peça/Serviço
+                </label>
+                <select class="form-select" id="selectPeca" name="nome_peca" required>
+                  <option value="">Selecione a peça...</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="inputQuilometragem" class="form-label">
+                  <i class="bi bi-speedometer me-2"></i>Quilometragem Atual
+                </label>
+                <input type="number" class="form-control" id="inputQuilometragem" name="quilometragem_atual" required
+                       placeholder="Ex: 50000">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="inputVidaUtil" class="form-label">
+                  <i class="bi bi-clock-history me-2"></i>Vida Útil da Peça (km)
+                </label>
+                <input type="number" class="form-control" id="inputVidaUtil" name="vida_util_km"
+                       placeholder="Ex: 10000">
+                <div class="form-text">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Informe a vida útil esperada da peça em quilômetros
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="inputProximaManutencao" class="form-label">
+                  <i class="bi bi-calendar-check me-2"></i>Próxima Manutenção (km)
+                </label>
+                <input type="number" class="form-control" id="inputProximaManutencao" name="proxima_manutencao_km"
+                       placeholder="Ex: 60000">
+                <div class="form-text">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Quilometragem recomendada para próxima manutenção
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="inputValorPeca" class="form-label">
+                  <i class="bi bi-currency-dollar me-2"></i>Valor da Peça (R$)
+                </label>
+                <input type="number" step="0.01" class="form-control" id="inputValorPeca" name="valor_peca"
+                       placeholder="Ex: 150.00">
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="inputValorMaoObra" class="form-label">
+                  <i class="bi bi-wrench me-2"></i>Mão de Obra (R$)
+                </label>
+                <input type="number" step="0.01" class="form-control" id="inputValorMaoObra" name="mao_de_obra"
+                       placeholder="Ex: 80.00">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="inputObservacoes" class="form-label">
+                <i class="bi bi-chat-text me-2"></i>Observações
+              </label>
+              <textarea class="form-control" id="inputObservacoes" name="observacoes" rows="3"
+                        placeholder="Informações adicionais sobre a manutenção..."></textarea>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+              <button type="button" class="btn btn-outline-secondary" id="btnRapido">
+                <i class="bi bi-lightning"></i> Preencher Automaticamente
+              </button>
+              <a href="{{ url_for('manutencoes_veiculo', veiculo_id=0) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+              </a>
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-save"></i> Salvar Manutenção
+              </button>
+            </div>
+          </div>
+
+          <!-- Formulário Tradicional -->
+          <form method="POST" action="{{ url_for('nova_manutencao', veiculo_id=0) }}" id="formManutencao">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="nome_peca" class="form-label">Peça/Serviço *</label>
+                <input type="text" class="form-control" id="nome_peca" name="nome_peca" required
+                       placeholder="Ex: Troca de óleo, Pastilha de freio, etc.">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="data_manutencao" class="form-label">Data da Manutenção *</label>
+                <input type="date" class="form-control" id="data_manutencao" name="data_manutencao" required>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('manutencoes_veiculo', veiculo_id=0) }}"
+                 class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Salvar Manutenção
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .card {
+    border-radius: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    border-radius: 20px 20px 0 0;
+  }
+
+  #dashboardInteligente {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  body.dark-mode #dashboardInteligente {
+    background: #1e293b;
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  body.dark-mode .form-label {
+    color: #e2e8f0;
+  }
+
+  .form-text {
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+
+  body.dark-mode .form-text {
+    color: #94a3b8;
+  }
+
+  .btn-lg {
+    padding: 0.5rem 1.5rem;
+    font-size: 1.125rem;
+  }
+</style>
+
+<script src="{{ url_for('static', filename='js/manutencao-dashboard.js') }}"></script>
+<script>
+function toggleDashboard() {
+  const dashboard = document.getElementById('dashboardInteligente');
+  const form = document.getElementById('formManutencao');
+
+  if (dashboard.style.display === 'none') {
+    dashboard.style.display = 'block';
+    form.style.display = 'none';
+  } else {
+    dashboard.style.display = 'none';
+    form.style.display = 'block';
+  }
+}
+
+// Inicializar com dashboard inteligente visível
+document.addEventListener('DOMContentLoaded', function() {
+  const dashboard = document.getElementById('dashboardInteligente');
+  const form = document.getElementById('formManutencao');
+
+  if (dashboard && form) {
+    dashboard.style.display = 'block';
+    form.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}

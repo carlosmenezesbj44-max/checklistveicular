@@ -1,0 +1,955 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="mb-4">
+        <i class="bi bi-gear-fill"></i> Configurações
+      </h1>
+    </div>
+  </div>
+
+  <!-- Abas de Configuração -->
+  <ul class="nav nav-tabs mb-4" id="configTabs" role="tablist">
+    {% if current_user.is_admin %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios-content" type="button" role="tab" aria-controls="usuarios-content" aria-selected="true">
+        <i class="bi bi-people-fill"></i> Usuários
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="gerenciamento-tab" data-bs-toggle="tab" data-bs-target="#gerenciamento-content" type="button" role="tab" aria-controls="gerenciamento-content" aria-selected="false">
+        <i class="bi bi-tools"></i> Gerenciamento
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="permissoes-tab" data-bs-toggle="tab" data-bs-target="#permissoes-content" type="button" role="tab" aria-controls="permissoes-content" aria-selected="false">
+        <i class="bi bi-shield-check"></i> Permissões
+      </button>
+    </li>
+    {% endif %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if not current_user.is_admin %}active{% endif %}" id="twilio-tab" data-bs-toggle="tab" data-bs-target="#twilio-content" type="button" role="tab" aria-controls="twilio-content" aria-selected="{% if not current_user.is_admin %}true{% else %}false{% endif %}">
+        <i class="bi bi-whatsapp"></i> Twilio
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email-content" type="button" role="tab" aria-controls="email-content" aria-selected="false">
+        <i class="bi bi-envelope"></i> Email
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="sistema-tab" data-bs-toggle="tab" data-bs-target="#sistema-content" type="button" role="tab" aria-controls="sistema-content" aria-selected="false">
+        <i class="bi bi-sliders"></i> Sistema
+      </button>
+    </li>
+  </ul>
+
+  <!-- Conteúdo das Abas -->
+  <div class="tab-content" id="configTabContent">
+    <!-- Aba Usuários -->
+    {% if current_user.is_admin %}
+    <div class="tab-pane fade show active" id="usuarios-content" role="tabpanel" aria-labelledby="usuarios-tab">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-people-fill"></i> Gerenciamento de Usuários
+          </h5>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-light">
+            <i class="bi bi-person-plus"></i> Novo Usuário
+          </a>
+        </div>
+        <div class="card-body p-2">
+          {% if users %}
+          <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="py-2">Usuário</th>
+                  <th class="py-2">E-mail</th>
+                  <th class="py-2">Nível de Acesso</th>
+                  <th class="py-2">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr {% if not user.is_active %}class="table-light text-muted"{% endif %}>
+                  <td class="py-1">
+                    <strong>{{ user.username }}</strong>
+                    {% if user.id == current_user.id %}
+                    <span class="badge bg-info">Você</span>
+                    {% endif %}
+                    {% if not user.is_active %}
+                    <span class="badge bg-secondary">Inativo</span>
+                    {% endif %}
+                  </td>
+                  <td class="py-1">{{ user.email or '-' }}</td>
+                  <td class="py-1">
+                    <span class="badge {% if user.role == 'admin' %}bg-danger{% else %}bg-success{% endif %}">
+                      {{ 'Admin' if user.role == 'admin' else 'Usuário Normal' }}
+                    </span>
+                  </td>
+                  <td class="py-1">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a href="{{ url_for('auth.edit_user', user_id=user.id) }}" class="btn btn-outline-primary" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                      
+                      {% if user.id != current_user.id %}
+                      <form method="POST" action="{{ url_for('auth.toggle_user_active', user_id=user.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-outline-warning" title="{{ 'Inativar' if user.is_active else 'Ativar' }}">
+                          <i class="bi {{ 'bi-person-x' if user.is_active else 'bi-person-check' }}"></i>
+                        </button>
+                      </form>
+                      
+                      <form method="POST" action="{{ url_for('auth.delete_user', user_id=user.id) }}" class="d-inline" onsubmit="return confirm('Tem certeza que deseja deletar este usuário?')">
+                        <button type="submit" class="btn btn-outline-danger" title="Deletar">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0" role="alert">
+            <i class="bi bi-info-circle"></i> Nenhum usuário encontrado.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Aba Gerenciamento -->
+    {% if current_user.is_admin %}
+    <div class="tab-pane fade" id="gerenciamento-content" role="tabpanel" aria-labelledby="gerenciamento-tab">
+      <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0">
+            <i class="bi bi-tools"></i> Gerenciamento do Sistema
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <h6 class="fw-bold mb-2">Backup e Restauração</h6>
+              <p class="text-muted small mb-3">Faça backup de seus dados ou restaure de um arquivo anterior.</p>
+              <div class="d-grid gap-2">
+                <a href="{{ url_for('backup') }}" class="btn btn-primary btn-sm">
+                  <i class="bi bi-download"></i> Fazer Backup
+                </a>
+                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#restoreBackupModal">
+                  <i class="bi bi-upload"></i> Restaurar Backup
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <h6 class="fw-bold mb-2">Aplicativo Móvel</h6>
+              <p class="text-muted small mb-3">Instale a versão PWA do aplicativo no seu dispositivo móvel.</p>
+              <div class="d-grid gap-2">
+                <button id="installAppBtn" type="button" class="btn btn-info btn-sm">
+                  <i class="bi bi-download"></i> Instalar App
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i>
+            <strong>Dicas:</strong>
+            <ul class="mb-0 mt-2">
+              <li>Faça backups regularmente para proteger seus dados</li>
+              <li>O aplicativo móvel funciona offline</li>
+              <li>A restauração sobrescreverá os dados atuais</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Aba Grupos -->
+    {% if current_user.is_admin %}
+    <div class="tab-pane fade" id="grupos-content" role="tabpanel" aria-labelledby="grupos-tab">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-people-fill"></i> Grupos de Usuários
+          </h5>
+          <button type="button" class="btn btn-light btn-sm" onclick="criarNovoGrupo()">
+            <i class="bi bi-plus-circle"></i> Novo Grupo
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-4">Atribua usuários a grupos para gerenciar permissões de forma coletiva:</p>
+
+          <div id="grupos-container">
+            <div class="text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Modal Criar/Editar Grupo -->
+    <div class="modal fade" id="modalGrupo" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalGrupoTitle">
+              <i class="bi bi-people-fill"></i> Novo Grupo
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="formGrupo">
+              <input type="hidden" id="grupoId" name="id">
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="grupoNome" class="form-label">Nome do Grupo *</label>
+                  <input type="text" class="form-control" id="grupoNome" name="name" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="grupoDisplayName" class="form-label">Nome de Exibição *</label>
+                  <input type="text" class="form-control" id="grupoDisplayName" name="display_name" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="grupoDescricao" class="form-label">Descrição</label>
+                <textarea class="form-control" id="grupoDescricao" name="description" rows="2"></textarea>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="grupoCor" class="form-label">Cor do Grupo</label>
+                  <input type="color" class="form-control form-control-color" id="grupoCor" name="color" value="#6c757d">
+                </div>
+                <div class="col-md-6">
+                  <label for="grupoIcone" class="form-label">Ícone (Bootstrap Icons)</label>
+                  <select class="form-select" id="grupoIcone" name="icon">
+                    <option value="bi-people">👥 Pessoas</option>
+                    <option value="bi-tools">🔧 Ferramentas</option>
+                    <option value="bi-graph-up">📈 Dashboard</option>
+                    <option value="bi-car-front">🚗 Veículos</option>
+                    <option value="bi-eye">👁️ Visualização</option>
+                    <option value="bi-shield-check">🛡️ Segurança</option>
+                    <option value="bi-cash">💰 Financeiro</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Permissões do Grupo</label>
+                <div id="permissoesGrupoContainer">
+                  <!-- Permissões serão carregadas dinamicamente -->
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x-circle"></i> Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" onclick="salvarGrupo()">
+              <i class="bi bi-check-circle"></i> Salvar Grupo
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba Permissões -->
+    {% if current_user.is_admin %}
+    <div class="tab-pane fade" id="permissoes-content" role="tabpanel" aria-labelledby="permissoes-tab">
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-shield-check"></i> Controle de Permissões
+          </h5>
+          <button type="button" class="btn btn-light btn-sm" onclick="criarNovoGrupo()">
+            <i class="bi bi-plus-circle"></i> Novo Grupo
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-4">Habilite ou desabilite funcionalidades para diferentes tipos de usuários:</p>
+          
+          <div id="permissoes-container">
+            <div class="text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Aba Twilio -->
+    <div class="tab-pane fade {% if not current_user.is_admin %}show active{% endif %}" id="twilio-content" role="tabpanel" aria-labelledby="twilio-tab">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-whatsapp"></i> Configuração do Twilio WhatsApp
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="formTwilio" method="POST" action="{{ url_for('atualizar_configuracoes', config_type='twilio') }}">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="twilio_account_sid" class="form-label">
+                  Account SID
+                  <span class="text-danger">*</span>
+                </label>
+                <input 
+                  type="password" 
+                  class="form-control" 
+                  id="twilio_account_sid" 
+                  name="TWILIO_ACCOUNT_SID" 
+                  value="{{ twilio_config.get('TWILIO_ACCOUNT_SID', '') }}"
+                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  required
+                >
+                <small class="form-text text-muted">
+                  Encontre em: <a href="https://www.twilio.com/console" target="_blank" rel="noopener">Twilio Console</a>
+                </small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="twilio_auth_token" class="form-label">
+                  Auth Token
+                  <span class="text-danger">*</span>
+                </label>
+                <input 
+                  type="password" 
+                  class="form-control" 
+                  id="twilio_auth_token" 
+                  name="TWILIO_AUTH_TOKEN" 
+                  value="{{ twilio_config.get('TWILIO_AUTH_TOKEN', '') }}"
+                  placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  required
+                >
+                <small class="form-text text-muted">Token de autenticação da sua conta Twilio</small>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="twilio_whatsapp_from" class="form-label">
+                  Número WhatsApp (De)
+                  <span class="text-danger">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="twilio_whatsapp_from" 
+                  name="TWILIO_WHATSAPP_FROM" 
+                  value="{{ twilio_config.get('TWILIO_WHATSAPP_FROM', '') }}"
+                  placeholder="whatsapp:+551199999999"
+                  pattern="whatsapp:\+\d{1,15}"
+                  required
+                >
+                <small class="form-text text-muted">
+                  Formato: whatsapp:+55 com DDD (ex: whatsapp:+551199999999)
+                </small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="admin_whatsapp" class="form-label">
+                  Número do Admin
+                  <span class="text-danger">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="admin_whatsapp" 
+                  name="ADMIN_WHATSAPP" 
+                  value="{{ twilio_config.get('ADMIN_WHATSAPP', '') }}"
+                  placeholder="+5511987654321"
+                  pattern="\+\d{1,15}"
+                  required
+                >
+                <small class="form-text text-muted">
+                  Seu número com +55 (ex: +5511987654321)
+                </small>
+              </div>
+            </div>
+
+            <div class="alert alert-info" role="alert">
+              <i class="bi bi-info-circle"></i>
+              <strong>Informações Importantes:</strong>
+              <ul class="mb-0 mt-2">
+                <li>Suas credenciais são armazenadas de forma segura</li>
+                <li>Os números devem estar registrados e validados no Twilio</li>
+                <li>WhatsApp Business API requer aprovação da Meta</li>
+              </ul>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <button type="reset" class="btn btn-secondary">
+                <i class="bi bi-arrow-clockwise"></i> Limpar
+              </button>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Salvar Configurações
+              </button>
+            </div>
+          </form>
+
+          <!-- Status da Conexão -->
+          <div class="mt-4 pt-4 border-top">
+            <h6 class="mb-3">Status da Conexão</h6>
+            <div id="twilio-status" class="d-flex align-items-center">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                <span class="visually-hidden">Verificando...</span>
+              </div>
+              <span>Verificando status da conexão...</span>
+            </div>
+          </div>
+          <div class="alert alert-warning mt-3" role="alert" id="status-warning" style="display: none;">
+            <i class="bi bi-exclamation-triangle"></i> Se o status continuar como "Desconectado", verifique se as credenciais estão corretas.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba Email (Placeholder) -->
+    <div class="tab-pane fade" id="email-content" role="tabpanel" aria-labelledby="email-tab">
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-envelope"></i> Configuração de Email
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">Configuração de email em desenvolvimento...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba Sistema (Placeholder) -->
+    <div class="tab-pane fade" id="sistema-content" role="tabpanel" aria-labelledby="sistema-tab">
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-sliders"></i> Configurações do Sistema
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">Configurações do sistema em desenvolvimento...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .nav-tabs .nav-link {
+    color: #495057;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+  }
+
+  .nav-tabs .nav-link:hover {
+    color: #0d47a1;
+    border-bottom-color: #0d47a1;
+  }
+
+  .nav-tabs .nav-link.active {
+    color: #0d47a1;
+    background-color: transparent;
+    border-bottom-color: #0d47a1;
+  }
+
+  .form-label {
+    font-weight: 500;
+    color: #333;
+  }
+
+  .dark-mode .form-label {
+    color: #e0e0e0;
+  }
+
+  .card {
+    border: none;
+    border-radius: 0.5rem;
+  }
+
+  .card-header {
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Verificar status do Twilio se houver credenciais
+    const accountSid = document.getElementById('twilio_account_sid').value;
+    const authToken = document.getElementById('twilio_auth_token').value;
+    
+    if (accountSid && authToken) {
+      verificarStatusTwilio();
+    }
+
+    // Validação do formulário
+    const formTwilio = document.getElementById('formTwilio');
+    if (formTwilio) {
+      formTwilio.addEventListener('submit', function(e) {
+        if (!this.checkValidity()) {
+          e.preventDefault();
+          e.stopPropagation();
+          alert('Por favor, preencha todos os campos corretamente.');
+        }
+        this.classList.add('was-validated');
+      });
+    }
+  });
+
+  function verificarStatusTwilio() {
+    const statusDiv = document.getElementById('twilio-status');
+    const warningDiv = document.getElementById('status-warning');
+    
+    fetch('{{ url_for("verificar_status_twilio") }}')
+      .then(response => response.json())
+      .then(data => {
+        if (data.conectado) {
+          statusDiv.innerHTML = `
+            <div class="text-success me-2">
+              <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <span>Conectado com sucesso • Conta: ${data.conta || 'N/A'}</span>
+          `;
+          if (warningDiv) warningDiv.style.display = 'none';
+        } else {
+          statusDiv.innerHTML = `
+            <div class="text-warning me-2">
+              <i class="bi bi-exclamation-circle-fill"></i>
+            </div>
+            <span>Desconectado ou credenciais inválidas</span>
+          `;
+          if (warningDiv) warningDiv.style.display = 'block';
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao verificar status:', error);
+        statusDiv.innerHTML = `
+          <div class="text-danger me-2">
+            <i class="bi bi-x-circle-fill"></i>
+          </div>
+          <span>Erro ao verificar status</span>
+        `;
+      });
+  }
+
+  // Carregar grupos
+  document.getElementById('grupos-tab')?.addEventListener('click', function() {
+    carregarGrupos();
+  });
+
+  // Carregar permissões
+  document.getElementById('permissoes-tab')?.addEventListener('click', function() {
+    carregarPermissoes();
+  });
+
+  function carregarPermissoes() {
+    fetch('/api/permissoes')
+      .then(response => response.json())
+      .then(data => {
+        renderizarPermissoes(data);
+      })
+      .catch(error => {
+        console.error('Erro ao carregar permissões:', error);
+        document.getElementById('permissoes-container').innerHTML = 
+          '<div class="alert alert-danger">Erro ao carregar permissões</div>';
+      });
+  }
+
+  function carregarGrupos() {
+    fetch('/api/roles')
+      .then(response => response.json())
+      .then(data => {
+        renderizarGrupos(data.roles);
+      })
+      .catch(error => {
+        console.error('Erro ao carregar grupos:', error);
+        document.getElementById('grupos-container').innerHTML =
+          '<div class="alert alert-danger">Erro ao carregar grupos</div>';
+      });
+  }
+
+  function renderizarGrupos(roles) {
+    let html = '';
+
+    if (roles.length === 0) {
+      html = '<div class="alert alert-info">Nenhum grupo encontrado</div>';
+    } else {
+      // Agrupar usuários por roles
+      const usuariosPorRole = {};
+
+      // Primeiro, buscar usuários para cada role
+      const promises = roles.map(role => {
+        return fetch(`/api/roles/${role.id}/permissions`)
+          .then(response => response.json())
+          .then(data => {
+            usuariosPorRole[role.id] = {
+              role: role,
+              permissions: data.permissions || [],
+              users: [] // Será preenchido depois
+            };
+          });
+      });
+
+      Promise.all(promises).then(() => {
+        // Agora buscar usuários para cada role
+        const userPromises = roles.map(role => {
+          return fetch('/api/users')
+            .then(response => response.json())
+            .then(data => {
+              // Filtrar usuários que têm este role
+              const usersWithRole = data.filter(user => {
+                // Esta é uma simplificação, na prática você precisaria de uma API específica
+                return user.roles && user.roles.includes(role.id);
+              });
+              usuariosPorRole[role.id].users = usersWithRole;
+            });
+        });
+
+        Promise.all(userPromises).then(() => {
+          // Renderizar interface
+          html = '<div class="row">';
+
+          Object.values(usuariosPorRole).forEach(item => {
+            const role = item.role;
+            const permissions = item.permissions;
+            const users = item.users;
+
+            html += `
+              <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                  <div class="card-header" style="background-color: ${role.color}; color: white;">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0">
+                        <i class="${role.icon}"></i> ${role.display_name}
+                      </h6>
+                      <span class="badge bg-light text-dark">${permissions.length} permissões</span>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <p class="text-muted small mb-3">${role.description}</p>
+
+                    <div class="mb-3">
+                      <strong>Usuários (${users.length}):</strong>
+                      <div class="mt-2">
+                        ${users.length > 0 ?
+                          users.map(user => `<span class="badge bg-secondary me-1">${user.username}</span>`).join('') :
+                          '<em class="text-muted">Nenhum usuário</em>'
+                        }
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <strong>Permissões principais:</strong>
+                      <div class="mt-1">
+                        ${permissions.slice(0, 3).map(p =>
+                          `<small class="badge bg-light text-dark me-1">${p.feature_name}</small>`
+                        ).join('')}
+                        ${permissions.length > 3 ? `<small class="text-muted">+${permissions.length - 3} mais</small>` : ''}
+                      </div>
+                    </div>
+
+                    <div class="d-grid">
+                      <button class="btn btn-outline-primary btn-sm" onclick="gerenciarRole(${role.id})">
+                        <i class="bi bi-pencil"></i> Gerenciar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+
+          html += '</div>';
+          document.getElementById('grupos-container').innerHTML = html;
+        });
+      });
+    }
+
+    document.getElementById('grupos-container').innerHTML = html;
+  }
+
+  function criarNovoGrupo() {
+    document.getElementById('modalGrupoTitle').innerHTML = '<i class="bi bi-plus-circle"></i> Novo Grupo';
+    document.getElementById('formGrupo').reset();
+    document.getElementById('grupoId').value = '';
+    carregarPermissoesGrupo([]);
+    new bootstrap.Modal(document.getElementById('modalGrupo')).show();
+  }
+
+  function gerenciarRole(roleId) {
+    // Buscar dados do role
+    fetch(`/api/roles/${roleId}/permissions`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          alert('Erro ao carregar grupo: ' + data.error);
+          return;
+        }
+
+        // Preencher formulário
+        document.getElementById('modalGrupoTitle').innerHTML = '<i class="bi bi-pencil"></i> Editar Grupo';
+        document.getElementById('grupoId').value = data.role.id;
+        document.getElementById('grupoNome').value = data.role.name;
+        document.getElementById('grupoDisplayName').value = data.role.display_name;
+        document.getElementById('grupoDescricao').value = data.role.description || '';
+        document.getElementById('grupoCor').value = data.role.color || '#6c757d';
+        document.getElementById('grupoIcone').value = data.role.icon || 'bi-people';
+
+        // Carregar permissões marcadas
+        const permissionKeys = data.permissions.map(p => p.feature_key);
+        carregarPermissoesGrupo(permissionKeys);
+
+        new bootstrap.Modal(document.getElementById('modalGrupo')).show();
+      })
+      .catch(error => {
+        console.error('Erro ao carregar grupo:', error);
+        alert('Erro ao carregar dados do grupo');
+      });
+  }
+
+  function carregarPermissoesGrupo(selectedPermissions = []) {
+    fetch('/api/permissoes')
+      .then(response => response.json())
+      .then(data => {
+        renderizarPermissoesGrupo(data, selectedPermissions);
+      })
+      .catch(error => {
+        console.error('Erro ao carregar permissões:', error);
+      });
+  }
+
+  function renderizarPermissoesGrupo(permissoes, selectedPermissions = []) {
+    let html = '';
+
+    // Agrupar por categoria
+    const permissoesPorCategoria = {};
+    permissoes.forEach(p => {
+      if (!permissoesPorCategoria[p.category]) {
+        permissoesPorCategoria[p.category] = [];
+      }
+      permissoesPorCategoria[p.category].push(p);
+    });
+
+    Object.keys(permissoesPorCategoria).sort().forEach(categoria => {
+      html += `
+        <div class="border rounded p-3 mb-3">
+          <h6 class="fw-bold text-primary mb-2">${categoria}</h6>
+          <div class="row">
+      `;
+
+      permissoesPorCategoria[categoria].forEach(p => {
+        const isSelected = selectedPermissions.includes(p.feature_key);
+        const iconHtml = p.icon ? `<i class="${p.icon} me-1"></i>` : '';
+
+        html += `
+          <div class="col-md-6 mb-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox"
+                     id="perm_${p.id}" name="permissions" value="${p.feature_key}"
+                     ${isSelected ? 'checked' : ''}>
+              <label class="form-check-label" for="perm_${p.id}">
+                ${iconHtml}${p.feature_name}
+                ${p.description ? `<br><small class="text-muted">${p.description}</small>` : ''}
+              </label>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById('permissoesGrupoContainer').innerHTML = html;
+  }
+
+  function salvarGrupo() {
+    const form = document.getElementById('formGrupo');
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const formData = new FormData(form);
+    const grupoId = formData.get('id');
+
+    // Coletar permissões selecionadas
+    const selectedPermissions = [];
+    document.querySelectorAll('input[name="permissions"]:checked').forEach(checkbox => {
+      selectedPermissions.push(checkbox.value);
+    });
+
+    const grupoData = {
+      name: formData.get('name'),
+      display_name: formData.get('display_name'),
+      description: formData.get('description'),
+      color: formData.get('color'),
+      icon: formData.get('icon'),
+      permissions: selectedPermissions
+    };
+
+    const url = grupoId ? `/api/roles/${grupoId}` : '/api/roles';
+    const method = grupoId ? 'PUT' : 'POST';
+
+    fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(grupoData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        alert('Erro ao salvar grupo: ' + data.error);
+        return;
+      }
+
+      // Fechar modal e recarregar grupos
+      bootstrap.Modal.getInstance(document.getElementById('modalGrupo')).hide();
+      carregarGrupos();
+
+      alert(grupoId ? 'Grupo atualizado com sucesso!' : 'Grupo criado com sucesso!');
+    })
+    .catch(error => {
+      console.error('Erro ao salvar grupo:', error);
+      alert('Erro ao salvar grupo');
+    });
+  }
+
+  function renderizarPermissoes(permissoes) {
+    let html = '';
+    let categoriaAtual = '';
+
+    // Agrupar por categoria
+    const permissoesPorCategoria = {};
+    permissoes.forEach(p => {
+      if (!permissoesPorCategoria[p.category]) {
+        permissoesPorCategoria[p.category] = [];
+      }
+      permissoesPorCategoria[p.category].push(p);
+    });
+
+    // Renderizar por categoria
+    Object.keys(permissoesPorCategoria).sort().forEach(categoria => {
+      html += `<div class="mb-4">
+        <h6 class="fw-bold text-uppercase text-muted mb-3">
+          <i class="bi bi-folder"></i> ${categoria}
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 40%">Funcionalidade</th>
+                <th style="width: 30%" class="text-center">Admin</th>
+                <th style="width: 30%" class="text-center">Usuário</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+      permissoesPorCategoria[categoria].forEach(p => {
+        const iconHtml = p.icon ? `<i class="${p.icon} me-2 text-primary"></i>` : '<i class="bi bi-gear me-2 text-muted"></i>';
+        html += `<tr>
+          <td>
+            <div class="d-flex align-items-start">
+              ${iconHtml}
+              <div>
+                <strong>${p.feature_name}</strong>
+                ${p.description ? `<br><small class="text-muted">${p.description}</small>` : ''}
+              </div>
+            </div>
+          </td>
+          <td class="text-center">
+            <div class="form-check form-switch">
+              <input class="form-check-input permissao-toggle ${p.admin_enabled ? 'bg-danger' : ''}" type="checkbox"
+                id="admin_${p.id}"
+                data-permission-id="${p.id}"
+                data-role="admin"
+                ${p.admin_enabled ? 'checked' : ''}
+                onchange="atualizarPermissao(${p.id}, 'admin', this.checked)">
+            </div>
+          </td>
+          <td class="text-center">
+            <div class="form-check form-switch">
+              <input class="form-check-input permissao-toggle ${p.user_enabled ? 'bg-success' : ''}" type="checkbox"
+                id="user_${p.id}"
+                data-permission-id="${p.id}"
+                data-role="user"
+                ${p.user_enabled ? 'checked' : ''}
+                onchange="atualizarPermissao(${p.id}, 'user', this.checked)">
+            </div>
+          </td>
+        </tr>`;
+      });
+
+      html += `</tbody>
+          </table>
+        </div>
+      </div>`;
+    });
+
+    document.getElementById('permissoes-container').innerHTML = html;
+  }
+
+  function atualizarPermissao(permissaoId, role, enabled) {
+    fetch('/api/permissoes/atualizar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        permission_id: permissaoId,
+        role: role,
+        enabled: enabled
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Feedback visual
+        const checkbox = document.getElementById(`${role === 'admin' ? 'admin' : 'user'}_${permissaoId}`);
+        checkbox.parentElement.parentElement.classList.add('table-success');
+        setTimeout(() => {
+          checkbox.parentElement.parentElement.classList.remove('table-success');
+        }, 1000);
+      } else {
+        alert('Erro ao atualizar permissão: ' + (data.error || 'Desconhecido'));
+        // Reverter checkbox
+        const checkbox = document.getElementById(`${role === 'admin' ? 'admin' : 'user'}_${permissaoId}`);
+        checkbox.checked = !checkbox.checked;
+      }
+    })
+    .catch(error => {
+      console.error('Erro:', error);
+      alert('Erro ao atualizar permissão');
+      // Reverter checkbox
+      const checkbox = document.getElementById(`${role === 'admin' ? 'admin' : 'user'}_${permissaoId}`);
+      checkbox.checked = !checkbox.checked;
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h4 mb-0">
+      <i class="bi bi-hourglass-split"></i> Manutenções Aguardando Aprovação
+    </h2>
+    <span class="badge bg-warning">{{ manutencoes|length }}</span>
+  </div>
+
+  {% if manutencoes %}
+  <div class="row">
+    {% for manutencao in manutencoes %}
+    <div class="col-md-6 col-lg-4 mb-3">
+      <div class="card border-warning shadow-sm">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0 fw-bold">{{ manutencao.placa }} - {{ manutencao.modelo }}</h6>
+        </div>
+        <div class="card-body p-3">
+          <p class="mb-2">
+            <strong>Condutor:</strong> {{ manutencao.condutor or '-' }}
+          </p>
+          <p class="mb-2">
+            <strong>Item Problema:</strong> {{ manutencao.nome_peca }}
+          </p>
+          <p class="mb-2">
+            <strong>Observações:</strong> 
+            <small class="text-muted d-block">{{ manutencao.observacoes or 'N/A' }}</small>
+          </p>
+          <p class="mb-3">
+            <strong>Data:</strong> 
+            <small>{{ manutencao.data_manutencao or 'N/A' }}</small>
+          </p>
+
+          <!-- Botões de Ação -->
+          <div class="btn-group w-100" role="group">
+            <button type="button" class="btn btn-success btn-sm" 
+              onclick="aprovarManutencao({{ manutencao.id }}, this)" title="Aprovar">
+              <i class="bi bi-check-circle"></i> Aprovar
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" 
+              onclick="rejeitarManutencao({{ manutencao.id }}, this)" title="Rejeitar">
+              <i class="bi bi-x-circle"></i> Rejeitar
+            </button>
+          </div>
+
+          <!-- Botão para Agendar (expandível) -->
+          <button type="button" class="btn btn-info btn-sm w-100 mt-2" 
+            onclick="abrirModalAgendamento({{ manutencao.id }})" title="Agendar">
+            <i class="bi bi-calendar-event"></i> Agendar
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle"></i> Nenhuma manutenção pendente de aprovação no momento.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal de Agendamento -->
+<div class="modal fade" id="modalAgendamento" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Agendar Manutenção</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="dataAgendamento" class="form-label">Data da Manutenção</label>
+          <input type="date" class="form-control" id="dataAgendamento" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="confirmarAgendamento()">
+          <i class="bi bi-check"></i> Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let manutencaoIdSelecionada = null;
+
+  function abrirModalAgendamento(manutencaoId) {
+    manutencaoIdSelecionada = manutencaoId;
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dataAgendamento').value = today;
+    new bootstrap.Modal(document.getElementById('modalAgendamento')).show();
+  }
+
+  function confirmarAgendamento() {
+    if (!manutencaoIdSelecionada) {
+      alert('Erro: ID da manutenção não definido');
+      return;
+    }
+
+    const dataSelecionada = document.getElementById('dataAgendamento').value;
+    if (!dataSelecionada) {
+      alert('Por favor, selecione uma data');
+      return;
+    }
+
+    agendarManutencao(manutencaoIdSelecionada, dataSelecionada);
+  }
+
+  function aprovarManutencao(manutencaoId, btn) {
+    if (!confirm('Deseja aprovar esta manutenção?')) return;
+
+    fetch(`/api/manutencao-sugerida/aprovar/${manutencaoId}`, { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          alert('Manutenção aprovada com sucesso!');
+          location.reload();
+        } else {
+          alert('Erro: ' + data.error);
+        }
+      })
+      .catch(e => alert('Erro ao aprovar: ' + e));
+  }
+
+  function rejeitarManutencao(manutencaoId, btn) {
+    if (!confirm('Deseja rejeitar esta manutenção?')) return;
+
+    fetch(`/api/manutencao-sugerida/rejeitar/${manutencaoId}`, { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          alert('Manutenção rejeitada');
+          location.reload();
+        } else {
+          alert('Erro: ' + data.error);
+        }
+      })
+      .catch(e => alert('Erro ao rejeitar: ' + e));
+  }
+
+  function agendarManutencao(manutencaoId, dataSelecionada) {
+    fetch(`/api/manutencao-sugerida/agendar/${manutencaoId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data_manutencao: dataSelecionada })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          alert('Manutenção agendada com sucesso!');
+          bootstrap.Modal.getInstance(document.getElementById('modalAgendamento')).hide();
+          location.reload();
+        } else {
+          alert('Erro: ' + data.error);
+        }
+      })
+      .catch(e => alert('Erro ao agendar: ' + e));
+  }
+</script>
+{% endblock %}

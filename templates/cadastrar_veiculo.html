@@ -1,0 +1,800 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="{{ url_for('static', filename='js/veiculo-upload.js') }}"></script>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-truck"></i> Cadastrar Veículo
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-light" onclick="toggleModo()">
+                            <i class="bi bi-speedometer2"></i> Modo Rápido
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Modo Rápido -->
+                    <div id="modoRapido" class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Modo Rápido:</strong> Preencha apenas os campos essenciais para cadastro rápido!
+                        </div>
+
+                        <form method="POST" action="{{ url_for('cadastrar_veiculo') }}" enctype="multipart/form-data"
+                            class="needs-validation" novalidate>
+                            <!-- SEÇÃO 1: INFORMAÇÕES BÁSICAS -->
+                            <div class="mb-4">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-info-circle me-2"></i>Informações
+                                    Básicas</h6>
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-type me-2"></i>Tipo de Veículo
+                                        </label>
+                                        <select class="form-select" id="tipoVeiculo" name="tipo" required>
+                                            <option value="Carro">Carro</option>
+                                            <option value="Moto">Moto</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-4" style="position: relative;">
+                                         <label class="form-label fw-semibold">
+                                             <i class="bi bi-person me-2"></i>Condutor
+                                         </label>
+                                         <div class="input-group">
+                                             <input type="text" class="form-control" id="condutor" name="condutor"
+                                                 required placeholder="Digite o nome do condutor..." autocomplete="off">
+                                             <button class="btn btn-outline-secondary" type="button"
+                                                 id="btnListarCondutores" title="Clique para ver todos os condutores">
+                                                 <i class="bi bi-list"></i>
+                                             </button>
+                                         </div>
+                                         <div id="dropdownCondutores" style="display: none; position: absolute; top: calc(100% + 2px); left: 0; right: 0; max-height: 300px; overflow-y: auto; background-color: #fff; border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;">
+                                         </div>
+                                     </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-upc-scan me-2"></i>Placa
+                                        </label>
+                                        <input type="text" class="form-control" id="placa" name="placa" required
+                                            placeholder="AAA-1234" maxlength="7"
+                                            oninput="atualizarPlacaMercosul(this.value)">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- VISUALIZAÇÃO PLACA MERCOSUL -->
+                            <div class="placa-container">
+                                <div class="d-flex justify-content-center">
+                                    <div class="placa-mercosul" id="previewPlaca">
+                                        <div class="placa-header">
+                                            <div class="placa-bandeira-brasil"></div>
+                                            <span class="placa-brasil-text">BRASIL</span>
+                                        </div>
+                                        <div class="placa-numero" id="placaTexto">AAA1J34</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SEÇÃO 2: DADOS DO VEÍCULO -->
+                            <div class="mb-4">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-car-front me-2"></i>Dados do
+                                    Veículo</h6>
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-card-text me-2"></i>Modelo
+                                        </label>
+                                        <input type="text" class="form-control" id="modelo" name="modelo"
+                                            placeholder="Ex: Gol 1.6">
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-calendar me-2"></i>Ano
+                                        </label>
+                                        <input type="number" class="form-control" id="ano" name="ano" min="1980"
+                                            max="2030" placeholder="Ex: 2023">
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-info-circle me-2"></i>Ano de Fabricação
+                                        </label>
+                                        <input type="number" class="form-control" id="anoFabricacao"
+                                            name="ano_fabricacao" min="1980" max="2030" placeholder="Ex: 2023">
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-speedometer me-2"></i>Quilometragem
+                                        </label>
+                                        <input type="number" class="form-control" id="quilometragem"
+                                            name="quilometragem" placeholder="Ex: 50000">
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-palette me-2"></i>Cor
+                                        </label>
+                                        <input type="text" class="form-control" id="cor" name="cor"
+                                            placeholder="Ex: Branco">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SEÇÃO 3: DOCUMENTAÇÃO -->
+                            <div class="mb-4">
+                                <h6 class="text-primary fw-bold mb-3"><i
+                                        class="bi bi-file-earmark me-2"></i>Documentação</h6>
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-card-text me-2"></i>Renavam
+                                        </label>
+                                        <input type="text" class="form-control" id="renavam" name="renavam"
+                                            placeholder="Ex: ABC1D34">
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-geo-alt me-2"></i>Chassi
+                                        </label>
+                                        <input type="text" class="form-control" id="chassi" name="chassi"
+                                            placeholder="Ex: 9BWZZZ...">
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-camera me-2"></i>Foto do Veículo
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="file" class="form-control d-none" id="foto_carro"
+                                                name="foto_carro" accept="image/*">
+                                            <button type="button" class="btn btn-outline-secondary"
+                                                onclick="document.getElementById('foto_carro').click()">
+                                                <i class="bi bi-upload"></i> Selecionar
+                                            </button>
+                                            <span class="input-group-text" id="fotoNome">Nenhum arquivo</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SEÇÃO 4: CARACTERÍSTICAS -->
+                            <div class="mb-4">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-sliders me-2"></i>Características
+                                    Técnicas</h6>
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-fuel-pump me-2"></i>Combustível
+                                        </label>
+                                        <select class="form-select" id="combustivel" name="combustivel">
+                                            <option value="">Selecione...</option>
+                                            <option value="Gasolina">Gasolina</option>
+                                            <option value="Etanol">Etanol</option>
+                                            <option value="Diesel">Diesel</option>
+                                            <option value="Flex">Flex</option>
+                                            <option value="Elétrico">Elétrico</option>
+                                            <option value="Híbrido">Híbrido</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-gear me-2"></i>Câmbio
+                                        </label>
+                                        <select class="form-select" id="cambio" name="cambio">
+                                            <option value="">Selecione...</option>
+                                            <option value="Manual">Manual</option>
+                                            <option value="Automático">Automático</option>
+                                            <option value="CVT">CVT</option>
+                                            <option value="DSG">DSG</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-people me-2"></i>Capacidade
+                                        </label>
+                                        <select class="form-select" id="capacidade" name="capacidade">
+                                            <option value="">Selecione...</option>
+                                            <option value="2">2 passageiros</option>
+                                            <option value="4">4 passageiros</option>
+                                            <option value="5">5 passageiros</option>
+                                            <option value="7">7 passageiros</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-box me-2"></i>Portas
+                                        </label>
+                                        <select class="form-select" id="portas" name="portas">
+                                            <option value="">Selecione...</option>
+                                            <option value="2">2 portas</option>
+                                            <option value="3">3 portas</option>
+                                            <option value="4">4 portas</option>
+                                            <option value="5">5 portas</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SEÇÃO 5: ÓLEO E MANUTENÇÃO -->
+                            <div class="mb-4">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-droplet me-2"></i>Óleo do Motor
+                                </h6>
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-droplet me-2"></i>Tipo de Óleo
+                                        </label>
+                                        <select class="form-select" id="oleoMotor" name="oleo_motor">
+                                            <option value="">Selecione...</option>
+                                            <option value="Mineral">Mineral</option>
+                                            <option value="Sintético">Sintético</option>
+                                            <option value="Semi-sintético">Semi-sintético</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-droplet-fill me-2"></i>Capacidade (Litros)
+                                        </label>
+                                        <select class="form-select" id="capacidadeOleo" name="capacidade_oleo">
+                                            <option value="">Selecione...</option>
+                                            <option value="1.5">1.5 Litros</option>
+                                            <option value="2.0">2.0 Litros</option>
+                                            <option value="3.5">3.5 Litros</option>
+                                            <option value="4.0">4.0 Litros</option>
+                                            <option value="4.5">4.5 Litros</option>
+                                            <option value="5.0">5.0 Litros</option>
+                                            <option value="5.5">5.5 Litros</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SEÇÃO 6: OBSERVAÇÕES -->
+                            <div class="mb-4">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-chat-text me-2"></i>Observações
+                                    Adicionais</h6>
+
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
+                                            placeholder="Informações adicionais sobre o veículo..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-lg btn-gradient shadow">
+                                    <i class="bi bi-save"></i> Cadastrar Veículo
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .card {
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            border-radius: 20px 20px 0 0;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        body.dark-mode .form-label {
+            color: #e2e8f0;
+        }
+
+        /* Estilos para Seções */
+        .mb-4 {
+            padding: 12px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            margin-bottom: 1.5rem;
+        }
+
+        body.dark-mode .mb-4 {
+            background-color: #1e293b;
+        }
+
+        .mb-4 h6 {
+            border-bottom: 2px solid;
+            padding-bottom: 8px;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .placa-container {
+            margin-bottom: -5.5rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Estilos para upload de foto */
+        .photo-upload-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        body.dark-mode .photo-upload-container {
+            border-color: #475569;
+        }
+
+        .photo-upload-container:hover {
+            border-color: var(--primary-500);
+            transform: scale(1.02);
+        }
+
+        .photo-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #64748b;
+        }
+
+        body.dark-mode .photo-placeholder {
+            color: #94a3b8;
+        }
+
+        .photo-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .photo-placeholder p {
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        .photo-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .photo-preview.show {
+            display: block;
+        }
+
+        .photo-placeholder.show {
+            display: none;
+        }
+
+        /* Estilos para Placa Mercosul */
+        .placa-mercosul {
+            width: 480px;
+            background: transparent;
+            border: 4px solid #000;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: scale(0.5);
+            transform-origin: top center;
+        }
+
+        /* Ajuste para mobile */
+        @media (max-width: 767.98px) {
+            .placa-mercosul {
+                transform: scale(0.6);
+                margin: 0 auto;
+            }
+        }
+
+        .placa-header {
+            background-color: #003DA5;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .placa-bandeira-brasil {
+            width: 32px;
+            height: 20px;
+            background: linear-gradient(135deg, #002776 0%, #002776 33%, #2ca02c 33%, #2ca02c 66%, #FFED00 66%, #FFED00 100%);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .placa-brasil-text {
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            letter-spacing: 2px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .placa-numero {
+            background-color: #FFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial Black', Arial, sans-serif;
+            font-size: 70px;
+            font-weight: 900;
+            color: #000;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            padding: 20px;
+            min-height: 120px;
+        }
+
+        body.dark-mode .placa-mercosul {
+            box-shadow: 0 8px 16px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Estilos para dropdown de condutores - Light Mode */
+        #dropdownCondutores {
+          background-color: #fff !important;
+          border-color: #dee2e6 !important;
+        }
+
+        #dropdownCondutores .dropdown-item {
+          padding: 0.75rem 1rem !important;
+          cursor: pointer !important;
+          transition: background-color 0.2s !important;
+          color: #212529 !important;
+          text-decoration: none !important;
+          display: block !important;
+          width: 100% !important;
+        }
+
+        #dropdownCondutores .dropdown-item:hover {
+          background-color: #f8f9fa !important;
+        }
+
+        /* Estilos para dropdown de condutores - Dark Mode */
+        body.dark-mode #dropdownCondutores {
+          background-color: #2d3748 !important;
+          border-color: #4a5568 !important;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        body.dark-mode #dropdownCondutores .dropdown-item {
+          color: #e2e8f0 !important;
+          border-bottom-color: #4a5568 !important;
+        }
+
+        body.dark-mode #dropdownCondutores strong {
+          color: #f7fafc !important;
+        }
+
+        body.dark-mode #dropdownCondutores small {
+          color: #cbd5e0 !important;
+        }
+
+        body.dark-mode #dropdownCondutores .dropdown-item:hover {
+          background-color: #374151 !important;
+        }
+        /* Ajustes para mobile */
+        @media (max-width: 767.98px) {
+            /* Container principal */
+            .container {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+
+            /* Card */
+            .card-body {
+                padding: 1rem !important;
+            }
+
+            /* Formulário */
+            .form-label {
+                font-size: 0.9rem !important;
+                margin-bottom: 0.3rem !important;
+            }
+
+            .form-control,
+            .form-select {
+                font-size: 16px !important; /* Previne zoom no iOS */
+                padding: 0.5rem 0.75rem !important;
+            }
+
+            /* Botões */
+            .btn {
+                padding: 0.5rem 1rem !important;
+                font-size: 0.9rem !important;
+            }
+
+            .btn-lg {
+                padding: 0.6rem 1.2rem !important;
+                font-size: 0.95rem !important;
+            }
+
+            /* Dropdown de condutores */
+            #dropdownCondutores {
+                max-height: 200px !important;
+                font-size: 0.9rem !important;
+                position: fixed !important;
+                left: 10px !important;
+                right: 10px !important;
+                top: auto !important;
+                bottom: 10px !important;
+                z-index: 10000 !important;
+                box-shadow: 0 -4px 12px rgba(0,0,0,0.15) !important;
+            }
+
+            #dropdownCondutores .dropdown-item {
+                padding: 0.5rem 0.75rem !important;
+                font-size: 0.85rem !important;
+            }
+
+            /* Seções */
+            .mb-4 {
+                padding: 8px !important;
+                margin-bottom: 1rem !important;
+            }
+
+            .mb-4 h6 {
+                font-size: 0.95rem !important;
+                margin-bottom: 0.75rem !important;
+            }
+
+            /* Placa container */
+            .placa-container {
+                margin-bottom: -3rem !important;
+                margin-top: 0.25rem !important;
+            }
+        }
+    </style>
+
+    <script src="{{ url_for('static', filename='js/photo-upload.js') }}"></script>
+    <script>
+        function atualizarPlacaMercosul(valor) {
+            const placaTexto = document.getElementById('placaTexto');
+            if (placaTexto) {
+                // Atualizar com o valor digitado ou placeholder
+                placaTexto.textContent = valor.toUpperCase() || 'AAA1J34';
+            }
+        }
+
+        function toggleModo() {
+            const modoRapido = document.getElementById('modoRapido');
+            const form = document.querySelector('form');
+
+            if (modoRapido.style.display === 'none') {
+                modoRapido.style.display = 'block';
+                form.style.display = 'none';
+            } else {
+                modoRapido.style.display = 'none';
+                form.style.display = 'block';
+            }
+        }
+
+        // Gerenciar lista de condutores
+        let condutoresDisponibles = [];
+
+        async function carregarCondutores() {
+          try {
+            const apiUrl = '{{ url_for("api_listar_condutores") }}';
+            console.log('Carregando condutores de:', apiUrl);
+            
+            const response = await fetch(apiUrl);
+            console.log('Status da resposta:', response.status);
+            
+            if (!response.ok) {
+              console.error('Erro ao carregar condutores:', response.status, response.statusText);
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            condutoresDisponibles = await response.json();
+            console.log('Condutores carregados:', condutoresDisponibles);
+          } catch (error) {
+            console.error('Erro ao buscar condutores:', error);
+            alert('Erro ao carregar condutores: ' + error.message);
+          }
+        }
+
+        function mostrarDropdownCondutores(filtro = '') {
+          const dropdown = document.getElementById('dropdownCondutores');
+          const input = document.getElementById('condutor');
+          
+          if (!dropdown) return;
+          
+          console.log('Mostrando dropdown com filtro:', filtro);
+          console.log('Total de condutores disponíveis:', condutoresDisponibles.length);
+          
+          if (condutoresDisponibles.length === 0) {
+            dropdown.innerHTML = '<div style="padding: 12px; color: #6c757d; text-align: center;">Nenhum condutor cadastrado</div>';
+            dropdown.style.display = 'block';
+            return;
+          }
+          
+          let condutoresFiltrados = condutoresDisponibles;
+          
+          if (filtro.trim()) {
+            condutoresFiltrados = condutoresDisponibles.filter(c => 
+              c.nome.toLowerCase().includes(filtro.toLowerCase())
+            );
+          }
+          
+          if (condutoresFiltrados.length === 0) {
+            dropdown.innerHTML = '<div style="padding: 12px; color: #6c757d; text-align: center;">Nenhum condutor encontrado para "' + filtro + '"</div>';
+            dropdown.style.display = 'block';
+            return;
+          }
+
+            dropdown.innerHTML = condutoresFiltrados
+              .map(c => `
+                <div class="dropdown-item" style="cursor: pointer; color: #212529; padding: 10px 12px; border-bottom: 1px solid #e9ecef;" data-condutor="${c.nome}">
+                  <div class="d-flex justify-content-between align-items-center w-100">
+                    <strong style="color: #000; font-weight: 600;">${c.nome}</strong>
+                    <small style="color: #6c757d; font-size: 0.85rem;">${c.cpf || ''}</small>
+                  </div>
+                </div>
+              `)
+              .join('');
+            
+            console.log('HTML do dropdown gerado, itens:', condutoresFiltrados.length);
+            console.log('HTML:', dropdown.innerHTML);
+            dropdown.style.display = 'block';
+            console.log('Dropdown visível:', dropdown.offsetHeight > 0);
+
+            // Adicionar event listeners aos itens
+            dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+                item.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    input.value = this.getAttribute('data-condutor');
+                    dropdown.style.display = 'none';
+                    console.log('Condutor selecionado:', this.getAttribute('data-condutor'));
+                });
+            });
+        }
+
+        // Atualizar referência do container de foto para o novo template
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM carregado - iniciando carregamento de condutores');
+            // Carregar condutores ao iniciar
+            carregarCondutores();
+
+            // Event listeners para o campo condutor
+            const inputCondutor = document.getElementById('condutor');
+            const btnListarCondutores = document.getElementById('btnListarCondutores');
+            const dropdownCondutores = document.getElementById('dropdownCondutores');
+
+            if (inputCondutor && btnListarCondutores) {
+                // Botão lista todos os condutores
+                btnListarCondutores.addEventListener('click', function () {
+                    mostrarDropdownCondutores();
+                });
+
+                // Input filtra enquanto digita
+                inputCondutor.addEventListener('input', function () {
+                    if (this.value.trim().length > 0) {
+                        mostrarDropdownCondutores(this.value);
+                    } else {
+                        dropdownCondutores.style.display = 'none';
+                    }
+                });
+
+                // Fechar dropdown ao clicar fora
+                document.addEventListener('click', function (e) {
+                    if (!e.target.closest('#dropdownCondutores') && !e.target.closest('#condutor') && !e.target.closest('#btnListarCondutores')) {
+                        dropdownCondutores.style.display = 'none';
+                    }
+                });
+            }
+            const photoContainer = document.getElementById('photoPreview');
+            const photoInput = document.getElementById('foto_carro');
+            const removePhotoBtn = document.getElementById('removePhoto');
+
+            if (photoContainer && photoInput) {
+                // Evento de clique no container para abrir seletor de arquivo
+                photoContainer.addEventListener('click', function () {
+                    photoInput.click();
+                });
+
+                // Evento de mudança no input de arquivo
+                photoInput.addEventListener('change', function (e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            const img = new Image();
+                            img.onload = function () {
+                                // Criar canvas para redimensionar para 200x200px
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+
+                                canvas.width = 200;
+                                canvas.height = 200;
+
+                                // Desenhar imagem no canvas
+                                ctx.drawImage(img, 0, 0, 200, 200);
+
+                                // Converter para blob e mostrar preview
+                                canvas.toBlob(function (blob) {
+                                    const url = URL.createObjectURL(blob);
+
+                                    // Remover preview anterior
+                                    const existingPreview = photoContainer.querySelector('.photo-preview');
+                                    if (existingPreview) {
+                                        existingPreview.remove();
+                                    }
+
+                                    // Criar elemento de preview
+                                    const preview = document.createElement('img');
+                                    preview.src = url;
+                                    preview.className = 'photo-preview show';
+
+                                    // Ocultar placeholder
+                                    const placeholder = photoContainer.querySelector('.photo-placeholder');
+                                    if (placeholder) {
+                                        placeholder.classList.add('show');
+                                    }
+
+                                    photoContainer.appendChild(preview);
+                                    if (removePhotoBtn) {
+                                        removePhotoBtn.style.display = 'inline-block';
+                                    }
+                                }, 'image/jpeg', 0.85);
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                // Evento de clique no botão remover
+                if (removePhotoBtn) {
+                    removePhotoBtn.addEventListener('click', function () {
+                        photoInput.value = '';
+                        const preview = photoContainer.querySelector('.photo-preview');
+                        if (preview) {
+                            preview.remove();
+                        }
+                        const placeholder = photoContainer.querySelector('.photo-placeholder');
+                        if (placeholder) {
+                            placeholder.classList.remove('show');
+                        }
+                        removePhotoBtn.style.display = 'none';
+                    });
+                }
+            }
+        });
+    </script>
+    {% endblock %}

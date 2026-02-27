@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+      <h1 class="display-6 fw-bold mb-2">Análise de Performance</h1>
+      <p class="text-muted mb-0">Acompanhe os indicadores de desempenho dos seus veículos</p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Voltar
+    </a>
+  </div>
+
+  {% if veiculos %}
+    <div class="row g-4">
+      {% for veiculo in veiculos %}
+      <div class="col-lg-6">
+        <div class="performance-veiculo-card">
+          <div class="performance-veiculo-header">
+            <div>
+              <h4 class="mb-1">{{ veiculo.placa }}</h4>
+              <p class="text-muted mb-0">{{ veiculo.modelo }} • {{ veiculo.condutor }}</p>
+            </div>
+            <a href="{{ url_for('detalhes', veiculo_id=veiculo.id) }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i> Ver Detalhes
+            </a>
+          </div>
+
+          <div class="performance-veiculo-body">
+            <div class="performance-grid">
+              {% if veiculo.indicadores.km_l.km_l %}
+              <div class="performance-grid-item">
+                <div class="performance-grid-icon">
+                  <i class="bi bi-droplet-fill"></i>
+                </div>
+                <div class="performance-grid-content">
+                  <div class="performance-grid-label">Consumo Médio</div>
+                  <div class="performance-grid-value">{{ veiculo.indicadores.km_l.km_l }} km/l</div>
+                </div>
+              </div>
+              {% endif %}
+
+              {% if veiculo.indicadores.custo_km.custo_km %}
+              <div class="performance-grid-item">
+                <div class="performance-grid-icon">
+                  <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div class="performance-grid-content">
+                  <div class="performance-grid-label">Custo/KM</div>
+                  <div class="performance-grid-value">R$ {{ veiculo.indicadores.custo_km.custo_km }}</div>
+                </div>
+              </div>
+              {% endif %}
+
+              {% if veiculo.indicadores.tempo_manutencao.tempo_km %}
+              <div class="performance-grid-item">
+                <div class="performance-grid-icon">
+                  <i class="bi bi-wrench-adjustable-fill"></i>
+                </div>
+                <div class="performance-grid-content">
+                  <div class="performance-grid-label">Intervalo Médio</div>
+                  <div class="performance-grid-value">{{ veiculo.indicadores.tempo_manutencao.tempo_km }} km</div>
+                </div>
+              </div>
+              {% endif %}
+
+              {% if veiculo.indicadores.taxa_danificacao.taxa_danificacao != None %}
+              <div class="performance-grid-item">
+                <div class="performance-grid-icon">
+                  <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div class="performance-grid-content">
+                  <div class="performance-grid-label">Taxa de Danos</div>
+                  <div class="performance-grid-value">{{ veiculo.indicadores.taxa_danificacao.taxa_danificacao }}%</div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="performance-veiculo-footer mt-4 pt-4 border-top">
+              <div class="row g-3 text-center">
+                {% if veiculo.indicadores.km_l.km_l %}
+                <div class="col-6 col-lg-4">
+                  <div class="performance-stat">
+                    <div class="performance-stat-label">KM/L</div>
+                    <div class="performance-stat-value">{{ veiculo.indicadores.km_l.km_l }}</div>
+                  </div>
+                </div>
+                {% endif %}
+                <div class="col-6 col-lg-4">
+                  <div class="performance-stat">
+                    <div class="performance-stat-label">Custo Total</div>
+                    <div class="performance-stat-value">R$ {{ veiculo.indicadores.custo_km.custo_total }}</div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-4">
+                  <div class="performance-stat">
+                    <div class="performance-stat-label">KM Rodados</div>
+                    <div class="performance-stat-value">{{ veiculo.indicadores.custo_km.km_total }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>Nenhum veículo com dados de performance disponíveis.
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  .performance-veiculo-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .performance-veiculo-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(16, 185, 129, 0.15);
+    border-color: var(--primary-500);
+  }
+
+  .performance-veiculo-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .performance-veiculo-header h4 {
+    color: var(--dark-500);
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .performance-veiculo-header .text-muted {
+    font-size: 0.9rem;
+  }
+
+  .performance-veiculo-body {
+    padding: 1.5rem;
+  }
+
+  .performance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+
+  .performance-grid-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
+    border: 1px solid rgba(16, 185, 129, 0.1);
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .performance-grid-item:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .performance-grid-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05));
+    border-radius: 8px;
+    color: var(--primary-500);
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .performance-grid-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .performance-grid-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .performance-grid-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dark-500);
+  }
+
+  .performance-stat {
+    padding: 1rem;
+  }
+
+  .performance-stat-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.5rem;
+  }
+
+  .performance-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--dark-500);
+  }
+
+  body.dark-mode .performance-veiculo-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  body.dark-mode .performance-veiculo-header {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border-bottom-color: #334155;
+  }
+
+  body.dark-mode .performance-veiculo-header h4 {
+    color: #e2e8f0;
+  }
+
+  body.dark-mode .performance-veiculo-body {
+    border-top-color: #334155;
+  }
+
+  body.dark-mode .performance-grid-item {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.02));
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+
+  body.dark-mode .performance-grid-value {
+    color: #e2e8f0;
+  }
+
+  body.dark-mode .performance-stat-value {
+    color: #e2e8f0;
+  }
+</style>
+{% endblock %}

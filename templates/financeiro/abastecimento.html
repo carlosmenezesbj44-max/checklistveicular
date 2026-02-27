@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="mb-0">⛽ Controle de Abastecimento</h1>
+        </div>
+        <div class="col-md-6 text-right">
+            <select id="veiculo-select" class="form-control form-control-sm d-inline-block w-auto" onchange="carregarAbastecimentos()">
+                <option value="">-- Todos os Veículos --</option>
+                {% for v in veiculos %}
+                <option value="{{ v.id }}">
+                    {{ v.placa }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Histórico de Abastecimentos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tabelaAbastecimentos">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Veículo</th>
+                                    <th>Data</th>
+                                    <th>Litros</th>
+                                    <th>Valor</th>
+                                    <th>KM</th>
+                                    <th>Consumo</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabela-corpo">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Carregar dados de abastecimentos
+    function carregarAbastecimentos() {
+        const veiculoId = document.getElementById('veiculo-select').value;
+        const tbody = document.getElementById('tabela-corpo');
+
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Carregando...</td></tr>';
+
+        let url = '/api/listar-combustivel';
+        if (veiculoId) {
+            url += '?veiculo_id=' + veiculoId;
+        }
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Nenhum abastecimento encontrado.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                data.forEach((abastecimento, index) => {
+                    const tr = document.createElement('tr');
+
+                    // Calcular consumo (km/l) baseado na diferença entre quilometragens consecutivas
+                    let consumo = '';
+                    if (abastecimento.quilometragem && abastecimento.quantidade_litros) {
+                        const kmAtual = parseFloat(abastecimento.quilometragem);
+                        const litros = parseFloat(abastecimento.quantidade_litros);
+
+                        if (litros > 0 && index < data.length - 1) {
+                            // Calcular diferença com o próximo registro (mais antigo)
+                            const proximoAbastecimento = data[index + 1];
+                            if (proximoAbastecimento && proximoAbastecimento.quilometragem) {
+                                const kmProximo = parseFloat(proximoAbastecimento.quilometragem);
+                                const kmRodados = kmAtual - kmProximo;
+
+                                if (kmRodados > 0) {
+                                    consumo = (kmRodados / litros).toFixed(2) + ' km/l';
+                                } else {
+                                    consumo = 'Dados inválidos';
+                                }
+                            }
+                        } else if (litros > 0 && index === data.length - 1) {
+                            // Último registro - não podemos calcular consumo preciso
+                            consumo = 'N/A (último)';
+                        }
+                    }
+
+                    tr.innerHTML = `
+                        <td>${abastecimento.placa} (${abastecimento.tipo_veiculo})</td>
+                        <td>${abastecimento.data_abastecimento || '-'}</td>
+                        <td>${abastecimento.quantidade_litros || '-'} L</td>
+                        <td>R$ ${parseFloat(abastecimento.valor_total || 0).toFixed(2)}</td>
+                        <td>${abastecimento.quilometragem || '-'} km</td>
+                        <td>${consumo}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="verDetalhes(${abastecimento.id})">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                        </td>
+                    `;
+
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(error => {
+                console.error('Erro ao carregar abastecimentos:', error);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Erro ao carregar dados.</td></tr>';
+            });
+    }
+
+    function verDetalhes(id) {
+        // Redirecionar para a página de detalhes do combustível
+        window.location.href = `/combustivel/cupom/${id}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', carregarAbastecimentos);
+</script>
+{% endblock %}

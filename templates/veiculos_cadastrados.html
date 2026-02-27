@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid p-4">
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0">
+          <i class="bi bi-list-ul text-primary"></i> Veículos Cadastrados
+        </h1>
+        <a href="{{ url_for('cadastrar_veiculo') }}" class="btn btn-primary">
+          <i class="bi bi-plus-circle"></i> Novo Veículo
+        </a>
+      </div>
+      
+      <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+          <input type="text" class="form-control" name="placa" placeholder="Placa"
+                 value="{{ request.args.get('placa','') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control" name="modelo" placeholder="Modelo"
+                 value="{{ request.args.get('modelo','') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control" name="condutor" placeholder="Condutor"
+                 value="{{ request.args.get('condutor','') }}">
+        </div>
+        <div class="col-md-2">
+          <select class="form-select" name="tipo">
+            <option value="">Todos os tipos</option>
+            <option value="Carro" {% if request.args.get('tipo')=='Carro' %}selected{% endif %}>Carro</option>
+            <option value="Moto" {% if request.args.get('tipo')=='Moto' %}selected{% endif %}>Moto</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-outline-primary w-100">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </form>
+      
+      {% if resultados %}
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white d-flex align-items-center gap-2">
+          <i class="bi bi-truck"></i>
+          <strong>Total de Veículos: {{ resultados|length }}</strong>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th><i class="bi bi-hash"></i> ID</th>
+                <th><i class="bi bi-alphabet"></i> Placa</th>
+                <th><i class="bi bi-car-front"></i> Modelo</th>
+                <th><i class="bi bi-tag"></i> Tipo</th>
+                <th><i class="bi bi-person"></i> Condutor</th>
+                <th><i class="bi bi-speedometer"></i> KM</th>
+                <th><i class="bi bi-calendar-event"></i> Data</th>
+                <th style="width: 150px;"><i class="bi bi-gear"></i> Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for veiculo in resultados %}
+              <tr class="align-middle">
+                <td>
+                  <span class="badge bg-secondary">{{ veiculo.id }}</span>
+                </td>
+                <td>
+                  <strong class="text-dark">{{ veiculo.placa or '-' }}</strong>
+                </td>
+                <td>{{ veiculo.modelo or '-' }}</td>
+                <td>
+                  {% if veiculo.tipo == 'Carro' %}
+                    <span class="badge bg-info">Carro</span>
+                  {% elif veiculo.tipo == 'Moto' %}
+                    <span class="badge bg-warning">Moto</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ veiculo.tipo or '-' }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ veiculo.condutor or '-' }}</td>
+                <td>{{ veiculo.quilometragem or '-' }} km</td>
+                <td>
+                  <small class="text-muted">{{ veiculo.data or '-' }}</small>
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <a href="{{ url_for('detalhes', veiculo_id=veiculo.id) }}" class="btn btn-outline-primary" title="Ver detalhes">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{{ url_for('editar_checklist', veiculo_id=veiculo.id) }}" class="btn btn-outline-secondary" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{{ url_for('pdf', veiculo_id=veiculo.id) }}" class="btn btn-outline-success" title="Download PDF">
+                      <i class="bi bi-file-pdf"></i>
+                    </a>
+                    <button type="button" class="btn btn-outline-danger" title="Deletar" onclick="deletarVeiculo({{ veiculo.id }}, '{{ veiculo.placa }}')">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer bg-light">
+          <small class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            Exibindo <strong>{{ resultados|length }}</strong> veículo(s) cadastrado(s) no sistema
+          </small>
+        </div>
+      </div>
+      {% else %}
+      <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="bi bi-info-circle"></i>
+        <strong>Nenhum veículo cadastrado</strong>
+        <p class="mb-0">Clique no botão "Novo Veículo" para começar a cadastrar veículos.</p>
+        <hr class="my-2">
+        <a href="{{ url_for('cadastrar_veiculo') }}" class="btn btn-sm btn-primary">
+          <i class="bi bi-plus-circle"></i> Cadastrar Primeiro Veículo
+        </a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+  .table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+  
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .badge {
+    font-weight: 500;
+    padding: 0.35rem 0.65rem;
+  }
+</style>
+
+<!-- Formulário oculto para deletar -->
+<form id="deleteForm" method="POST" style="display: none;">
+  <!-- O action será definido pelo JavaScript -->
+</form>
+
+<script>
+function deletarVeiculo(veiculoId, placa) {
+  if (confirm(`Tem certeza que deseja deletar o veículo com placa "${placa}"?\n\nEsta ação é irreversível e todos os dados associados serão removidos.`)) {
+    const form = document.getElementById('deleteForm');
+    form.action = `/checklist/deletar/${veiculoId}`;
+    form.submit();
+  }
+}
+</script>
+{% endblock %}

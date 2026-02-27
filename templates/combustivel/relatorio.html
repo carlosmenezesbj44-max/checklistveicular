@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Notificação de Sucesso -->
+{% if request.args.get('success') %}
+<div class="success-notification-container">
+  <div class="success-notification fade-in">
+    <div class="success-notification-icon">
+      <i class="bi bi-check-circle-fill"></i>
+    </div>
+    <div class="success-notification-content">
+      <h6 class="success-notification-title">Operação Realizada!</h6>
+      <p class="success-notification-text">{{ request.args.get('success') }}</p>
+    </div>
+    <button class="success-notification-close" onclick="this.parentElement.parentElement.remove()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<div class="container-fluid py-4">
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h4 mb-0">
+      <i class="bi bi-fuel-pump"></i> Relatório de Abastecimento
+    </h2>
+    <div>
+      <a href="/combustivel/modelo-nota" class="btn btn-info btn-sm" title="Ver modelo de nota fiscal padrão">
+        <i class="bi bi-file-earmark-text"></i> Modelo Nota
+      </a>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()">
+        <i class="bi bi-printer"></i> Imprimir
+      </button>
+      <a href="{{ url_for('combustivel') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Voltar
+      </a>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title">
+        <i class="bi bi-funnel"></i> Filtrar Registros
+      </h5>
+      <form method="post" class="row g-2">
+        <div class="col-md-4">
+          <input type="text" class="form-control" name="placa" placeholder="Placa do veículo" 
+                 value="{{ request.form.get('placa', '') }}"
+                 maxlength="10">
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control" name="data_ini" placeholder="Data inicial (dd/mm/yyyy)" 
+                 value="{{ request.form.get('data_ini', '') }}"
+                 pattern="\d{2}/\d{2}/\d{4}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control" name="data_fim" placeholder="Data final (dd/mm/yyyy)" 
+                 value="{{ request.form.get('data_fim', '') }}"
+                 pattern="\d{2}/\d{2}/\d{4}">
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-outline-primary w-100">
+            <i class="bi bi-search"></i> Buscar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Resumo Geral -->
+  {% if veiculos %}
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="card-text opacity-75 mb-1">Total de Veículos</p>
+              <h3 class="mb-0">{{ veiculos|length }}</h3>
+            </div>
+            <i class="bi bi-car-front-fill" style="font-size: 2rem;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="card-text opacity-75 mb-1">Total de Registros</p>
+              <h3 class="mb-0">{{ resultados|length }}</h3>
+            </div>
+            <i class="bi bi-receipt" style="font-size: 2rem;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="card-text opacity-75 mb-1">Total de Litros</p>
+              <h3 class="mb-0">
+                {{ "%.2f"|format((veiculos.values()|map(attribute='total_litros')|sum)|float(0)) }} L
+              </h3>
+            </div>
+            <i class="bi bi-droplet-fill" style="font-size: 2rem;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="card-text opacity-75 mb-1">Total Gasto</p>
+              <h3 class="mb-0">
+                R$ {{ "%.2f"|format((veiculos.values()|map(attribute='total_valor')|sum)|float(0)) }}
+              </h3>
+            </div>
+            <i class="bi bi-cash-coin" style="font-size: 2rem;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Relatórios por Veículo -->
+  {% if veiculos %}
+    {% for placa, veiculo in veiculos.items() %}
+    <div class="card mb-4 shadow-sm">
+      <!-- Cabeçalho do Veículo -->
+      <div class="card-header bg-light border-bottom">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <h5 class="mb-0">
+              <i class="bi bi-car-front"></i> 
+              <strong>{{ veiculo.placa }}</strong>
+              <span class="badge bg-secondary">{{ veiculo.tipo }}</span>
+            </h5>
+          </div>
+          <div class="col-md-6 text-end">
+            <small class="text-muted">
+              {{ veiculo.registros|length }} registros
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela de Registros -->
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th><i class="bi bi-calendar-event"></i> Data</th>
+              <th><i class="bi bi-speedometer2"></i> Km</th>
+              <th><i class="bi bi-droplet"></i> Litros</th>
+              <th><i class="bi bi-coin"></i> Valor (R$)</th>
+              <th><i class="bi bi-percent"></i> km/L</th>
+              <th><i class="bi bi-file-earmark-text"></i> Nota Fiscal</th>
+              <th><i class="bi bi-chat-left-text"></i> Observações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for reg in veiculo.registros %}
+            <tr>
+              <td>
+                <strong>{{ reg.data_abastecimento or '-' }}</strong>
+              </td>
+              <td>
+                {{ reg.quilometragem or '-' }} km
+              </td>
+              <td>
+                {{ "%.2f"|format(reg.quantidade_litros|float(0)) }} L
+              </td>
+              <td>
+                <strong class="text-primary">R$ {{ "%.2f"|format(reg.valor_total|float(0)) }}</strong>
+              </td>
+              <td>
+                {% if loop.first %}
+                  <span class="badge bg-secondary">-</span>
+                {% else %}
+                  {% set prev_reg = veiculo.registros[loop.index0-1] %}
+                  {% if prev_reg.quilometragem and reg.quilometragem and reg.quantidade_litros %}
+                    {% set km_diff = reg.quilometragem - prev_reg.quilometragem %}
+                    {% if km_diff > 0 and reg.quantidade_litros > 0 %}
+                      <span class="badge bg-info">
+                        {{ "%.2f"|format(km_diff / reg.quantidade_litros) }}
+                      </span>
+                    {% else %}
+                      <span class="badge bg-secondary">-</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge bg-secondary">-</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+              <td>
+                {% if reg.nota_fiscal_foto %}
+                  <a href="{{ url_for('uploads', filename=reg.nota_fiscal_foto) }}" 
+                     target="_blank" 
+                     class="btn btn-sm btn-outline-info nota-fiscal-link"
+                     title="Visualizar nota fiscal">
+                    <i class="bi bi-image"></i> Foto
+                  </a>
+                {% else %}
+                  <small class="text-muted">Sem foto</small>
+                {% endif %}
+              </td>
+              <td>
+                {% if reg.observacoes %}
+                  <small title="{{ reg.observacoes }}">
+                    {{ reg.observacoes[:40] }}{% if reg.observacoes|length > 40 %}...{% endif %}
+                  </small>
+                {% else %}
+                  <small class="text-muted">-</small>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Rodapé com Subtotais -->
+      <div class="card-footer bg-light">
+        <div class="row">
+          <div class="col-md-3">
+            <small class="text-dark">Registros:</small>
+            <strong>{{ veiculo.registros|length }}</strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-dark">Total Litros:</small>
+            <strong style="color: #0056b3; font-weight: 600;">{{ "%.2f"|format(veiculo.total_litros|float) }} L</strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-dark">Consumo Médio:</small>
+            <strong style="color: #186a1d; font-weight: 600;">
+              {% if veiculo.registros|length > 1 and veiculo.total_litros|float > 0 %}
+                {% set total_km = veiculo.registros[-1].quilometragem - veiculo.registros[0].quilometragem %}
+                {% if total_km > 0 %}
+                  {{ "%.2f"|format(total_km / (veiculo.total_litros|float)) }} km/L
+                {% else %}
+                  -
+                {% endif %}
+              {% else %}
+                -
+              {% endif %}
+            </strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-dark">Total Gasto:</small>
+            <strong style="color: #b71c1c; font-weight: 600;">R$ {{ "%.2f"|format(veiculo.total_valor|float) }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas Fiscais Organizadas -->
+      {% set notas_com_foto = veiculo.registros|selectattr('nota_fiscal_foto')|list %}
+      {% if notas_com_foto %}
+      <div class="notas-fiscais-section">
+        <h6 class="notas-fiscais-titulo">📎 Notas Fiscais - {{ veiculo.placa }}</h6>
+        <div class="notas-fiscais-grid">
+          {% for reg in notas_com_foto %}
+          <div class="nota-fiscal-card">
+            <img src="{{ url_for('uploads', filename=reg.nota_fiscal_foto) }}" 
+                 alt="Nota Fiscal {{ reg.data_abastecimento }}">
+            <div class="nota-fiscal-info">
+              <small><strong>Data:</strong> {{ reg.data_abastecimento }}</small>
+              <small><strong>Valor:</strong> R$ {{ "%.2f"|format(reg.valor_total|float(0)) }}</small>
+              <small><strong>Litros:</strong> {{ "%.2f"|format(reg.quantidade_litros|float(0)) }} L</small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      </div>
+      {% endfor %}
+  {% else %}
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle"></i> Nenhum registro de combustível encontrado.
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  /* Notificação de Sucesso */
+  .success-notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 450px;
+  }
+
+  .success-notification {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    color: white;
+    animation: slideIn 0.4s ease-out;
+  }
+
+  .success-notification.fade-in {
+    animation: slideIn 0.4s ease-out, fadeOut 0.4s ease-in 4.6s forwards;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeOut {
+    to {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+  }
+
+  .success-notification-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .success-notification-content {
+    flex: 1;
+  }
+
+  .success-notification-title {
+    margin: 0 0 0.25rem 0;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .success-notification-text {
+    margin: 0;
+    font-size: 0.85rem;
+    opacity: 0.95;
+  }
+
+  .success-notification-close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+
+  .success-notification-close:hover {
+    opacity: 1;
+  }
+
+  body.dark-mode .success-notification {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.2);
+  }
+
+  /* Seção de Notas Fiscais */
+  .notas-fiscais-section {
+    display: none;
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-top: 3px solid #343a40;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .notas-fiscais-titulo {
+    margin-bottom: 20px;
+    color: #343a40;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 10px;
+  }
+
+  .notas-fiscais-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .nota-fiscal-card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .nota-fiscal-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .nota-fiscal-info {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nota-fiscal-info small {
+    color: #495057;
+    line-height: 1.4;
+  }
+
+  .nota-fiscal-info small strong {
+    color: #343a40;
+    font-weight: 600;
+  }
+
+  /* Estilos para Impressão */
+  @media print {
+    .container-fluid {
+      max-width: 100%;
+    }
+
+    .card {
+      page-break-inside: avoid;
+    }
+
+    .card-header {
+      background-color: #f8f9fa !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .table-light {
+      background-color: #f8f9fa !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    button,
+    .btn,
+    .nota-fiscal-link {
+      display: none;
+    }
+
+    .notas-fiscais-section {
+      display: block !important;
+      page-break-inside: avoid;
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #ffffff !important;
+    }
+
+    .notas-fiscais-titulo {
+      margin-bottom: 10px;
+      font-size: 12px !important;
+      padding-bottom: 5px;
+    }
+
+    .notas-fiscais-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .nota-fiscal-card {
+      page-break-inside: avoid;
+      border: 0.5px solid #ccc !important;
+      box-shadow: none !important;
+    }
+
+    .nota-fiscal-card img {
+      max-height: 150px;
+      object-fit: contain;
+      border-bottom: 0.5px solid #ccc !important;
+    }
+
+    .nota-fiscal-info {
+      padding: 5px;
+      gap: 3px;
+    }
+
+    .nota-fiscal-info small {
+      font-size: 9px !important;
+    }
+
+    .row {
+      page-break-inside: avoid;
+    }
+
+    table {
+      width: 100%;
+    }
+
+    tr {
+      page-break-inside: avoid;
+    }
+  }
+
+  /* Labels escuros no footer */
+  .card-footer small {
+    color: #000000 !important;
+    font-weight: 600 !important;
+  }
+  
+  .card-footer small.text-dark {
+    color: #000000 !important;
+  }
+  
+  .card-footer {
+    background-color: #ffffff !important;
+  }
+  
+  .card-footer .text-dark {
+    color: #000000 !important;
+  }
+
+  /* Cores mais escuras nos valores */
+  .card-footer .text-info {
+    color: #0056b3 !important;
+    font-weight: 600 !important;
+  }
+
+  .card-footer .text-danger {
+    color: #b71c1c !important;
+    font-weight: 600 !important;
+  }
+
+  .card-footer .text-success {
+    color: #186a1d !important;
+    font-weight: 600 !important;
+  }
+
+  /* Dark Mode */
+  body.dark-mode .card {
+    background-color: #2d3748;
+    border-color: #4a5568;
+  }
+
+  body.dark-mode .card-header {
+    background-color: #1a202c !important;
+    border-color: #4a5568;
+  }
+
+  body.dark-mode .table-light {
+    background-color: #1a202c !important;
+  }
+
+  body.dark-mode .table {
+    color: #cbd5e0;
+  }
+
+  body.dark-mode .table th {
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+
+  body.dark-mode .table td {
+    border-color: #4a5568;
+  }
+
+  body.dark-mode .badge {
+    opacity: 0.9;
+  }
+
+  @media (max-width: 576px) {
+    .success-notification-container {
+      left: 10px;
+      right: 10px;
+      max-width: none;
+    }
+
+    .success-notification {
+      padding: 0.875rem 1rem;
+    }
+
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .table {
+      font-size: 0.85rem;
+    }
+
+    .btn {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.5rem;
+    }
+  }
+</style>
+
+{% endblock %}

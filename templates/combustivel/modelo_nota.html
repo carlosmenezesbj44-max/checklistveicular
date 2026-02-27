@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <!-- Modelo de Nota Fiscal Padrão -->
+      <div class="modelo-nota">
+        <!-- Cabeçalho -->
+        <div class="modelo-header">
+          <div class="company-name">CONTROLE DE ABASTECIMENTO</div>
+          <div class="company-subtitle">VIP CHECKLIST - GESTÃO FROTA</div>
+        </div>
+
+        <!-- Separador -->
+        <div class="separator"></div>
+
+        <!-- Informações do Documento -->
+        <div class="modelo-section">
+          <div class="row">
+            <div class="col-6">
+              <p><strong>Data:</strong> ___/___/_______</p>
+              <p><strong>Hora:</strong> _____:_____</p>
+              <p><strong>Número:</strong> ________________</p>
+            </div>
+            <div class="col-6">
+              <p><strong>CNPJ Fornecedor:</strong> ________________</p>
+              <p><strong>Nome Fornecedor:</strong> _________________________________</p>
+              <p><strong>Endereço:</strong> _________________________________</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Separador -->
+        <div class="separator"></div>
+
+        <!-- Informações do Veículo -->
+        <div class="modelo-section">
+          <h6>INFORMAÇÕES DO VEÍCULO</h6>
+          <div class="row">
+            <div class="col-6">
+              <p><strong>Placa:</strong> ________________</p>
+              <p><strong>Modelo:</strong> _________________________________</p>
+              <p><strong>Marca:</strong> _________________________________</p>
+            </div>
+            <div class="col-6">
+              <p><strong>Quilometragem:</strong> ________________ km</p>
+              <p><strong>Motorista:</strong> _________________________________</p>
+              <p><strong>Tipo de Combustível:</strong> _________________________________</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Separador -->
+        <div class="separator"></div>
+
+        <!-- Detalhes de Abastecimento -->
+        <div class="modelo-section">
+          <h6>DETALHES DO ABASTECIMENTO</h6>
+          <div class="row">
+            <div class="col-6">
+              <p><strong>Quantidade (Litros):</strong> ________________ L</p>
+              <p><strong>Valor Unitário:</strong> R$ ________________</p>
+            </div>
+            <div class="col-6">
+              <p><strong>Valor Total:</strong> R$ ________________</p>
+              <p><strong>Forma de Pagamento:</strong> _________________________________</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Separador -->
+        <div class="separator"></div>
+
+        <!-- Observações -->
+        <div class="modelo-section">
+          <h6>OBSERVAÇÕES</h6>
+          <div class="obs-box">
+            _________________________________________________________________
+            <br>
+            _________________________________________________________________
+            <br>
+            _________________________________________________________________
+          </div>
+        </div>
+
+        <!-- Separador -->
+        <div class="separator"></div>
+
+        <!-- QR Code e Controle -->
+        <div class="modelo-footer">
+          <div class="qr-section">
+            <p><strong>QR Code / Código:</strong></p>
+            <div class="qr-box">[Cole QR Code da nota aqui]</div>
+          </div>
+          <div class="assinatura-section">
+            <p>______________________</p>
+            <p>Assinatura Motorista</p>
+          </div>
+        </div>
+
+        <!-- Dicas -->
+        <div class="dicas-section">
+          <h6>✓ DICAS PARA CAPTURA DE FOTO</h6>
+          <ul>
+            <li>Fotografe em local bem iluminado</li>
+            <li>Mantenha a câmera perpendicular (ângulo reto)</li>
+            <li>Certifique-se que todos os dados estão legíveis</li>
+            <li>Capture o QR code quando disponível</li>
+            <li>Evite sombras e brilhos na imagem</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Botões de Ação -->
+      <div class="text-center mt-4">
+        <button onclick="window.print()" class="btn btn-primary btn-lg">
+          <i class="bi bi-printer"></i> Imprimir Modelo
+        </button>
+        <a href="{{ url_for('combustivel') }}" class="btn btn-secondary btn-lg">
+          <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .modelo-nota {
+    background-color: #ffffff;
+    border: 2px solid #343a40;
+    padding: 30px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .modelo-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .company-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #343a40;
+    letter-spacing: 1px;
+  }
+
+  .company-subtitle {
+    font-size: 11px;
+    color: #6c757d;
+    margin-top: 5px;
+  }
+
+  .separator {
+    border-top: 1px dashed #dee2e6;
+    margin: 15px 0;
+  }
+
+  .modelo-section {
+    margin-bottom: 20px;
+  }
+
+  .modelo-section h6 {
+    font-size: 12px;
+    font-weight: bold;
+    color: #343a40;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .modelo-section p {
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modelo-section strong {
+    color: #343a40;
+    min-width: 160px;
+  }
+
+  .obs-box {
+    border: 1px solid #dee2e6;
+    padding: 10px;
+    min-height: 60px;
+    background-color: #f8f9fa;
+    font-size: 12px;
+  }
+
+  .modelo-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 20px;
+  }
+
+  .qr-section {
+    text-align: center;
+  }
+
+  .qr-box {
+    border: 1px solid #dee2e6;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    margin: 10px auto;
+    font-size: 10px;
+    color: #6c757d;
+  }
+
+  .assinatura-section {
+    text-align: center;
+  }
+
+  .assinatura-section p:first-child {
+    border-top: 1px solid #343a40;
+    width: 150px;
+    margin: 30px auto 5px;
+    height: 30px;
+  }
+
+  .dicas-section {
+    background-color: #e7f3ff;
+    border-left: 4px solid #0056b3;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 4px;
+  }
+
+  .dicas-section h6 {
+    color: #0056b3;
+    margin-top: 0;
+    border: none;
+    padding-bottom: 0;
+    margin-bottom: 10px;
+  }
+
+  .dicas-section ul {
+    margin: 0;
+    padding-left: 20px;
+  }
+
+  .dicas-section li {
+    margin: 5px 0;
+    font-size: 12px;
+    color: #495057;
+  }
+
+  /* Print Styles */
+  @media print {
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 0;
+    }
+
+    .modelo-nota {
+      box-shadow: none;
+      border: 1px solid #dee2e6;
+      margin: 0;
+    }
+
+    .btn {
+      display: none;
+    }
+
+    .dicas-section {
+      display: none;
+    }
+  }
+</style>
+{% endblock %}

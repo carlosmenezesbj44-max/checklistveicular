@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">📋 Relatórios Financeiros</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Exportar Relatório</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="veiculoRel">Selecione um Veículo *</label>
+                        <select id="veiculoRel" class="form-control" required>
+                            <option value="">Selecione...</option>
+                            {% for v in veiculos %}
+                            <option value="{{ v.id }}">{{ v.placa }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Formato *</label>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="pdf" name="formato" class="custom-control-input" value="pdf" checked>
+                            <label class="custom-control-label" for="pdf">
+                                📄 PDF (Relatório Formatado)
+                            </label>
+                        </div>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="csv" name="formato" class="custom-control-input" value="csv">
+                            <label class="custom-control-label" for="csv">
+                                📊 CSV (Planilha)
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-block" onclick="exportarRelatorio()">
+                        ⬇️ Exportar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Informações</h5>
+                </div>
+                <div class="card-body">
+                    <p>
+                        <strong>📄 Formato PDF:</strong><br>
+                        Relatório completo com:
+                        <ul>
+                            <li>Resumo de custos</li>
+                            <li>Indicadores de performance</li>
+                            <li>Gastos dos últimos 6 meses</li>
+                            <li>Gráficos formatados</li>
+                        </ul>
+                    </p>
+                    <hr>
+                    <p>
+                        <strong>📊 Formato CSV:</strong><br>
+                        Exportação em planilha com:
+                        <ul>
+                            <li>Todos os gastos registrados</li>
+                            <li>Combustível</li>
+                            <li>Manutenção</li>
+                            <li>Multas e Documentos</li>
+                        </ul>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo Rápido -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">Resumo Rápido - Selecione um Veículo</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resumoRapido" class="text-center text-muted">
+                        <p>Selecione um veículo acima para visualizar o resumo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const veiculoRel = document.getElementById('veiculoRel');
+
+    veiculoRel.addEventListener('change', function() {
+        if (this.value) {
+            carregarResumoRapido(this.value);
+        }
+    });
+
+    function carregarResumoRapido(veiculoId) {
+        fetch(`/api/financeiro/resumo/${veiculoId}`)
+            .then(r => r.json())
+            .then(data => {
+                const resumo = data.resumo;
+                const html = `
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-left">
+                                <h6>Combustível</h6>
+                                <h4 class="text-danger">R$ ${resumo.combustivel.total.toFixed(2)}</h4>
+                                <small>${resumo.combustivel.qtd} registros</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-left">
+                                <h6>Manutenção</h6>
+                                <h4 class="text-info">R$ ${resumo.manutencao.total.toFixed(2)}</h4>
+                                <small>${resumo.manutencao.qtd} registros</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-left">
+                                <h6>Multas</h6>
+                                <h4 class="text-warning">R$ ${resumo.multas.total.toFixed(2)}</h4>
+                                <small>${resumo.multas.qtd} registros</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-left">
+                                <h6>Documentos</h6>
+                                <h4 class="text-success">R$ ${resumo.documentos.total.toFixed(2)}</h4>
+                                <small>${resumo.documentos.qtd} registros</small>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Total Geral:</strong> R$ ${resumo.total_geral.toFixed(2)}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Consumo Médio:</strong> ${data.consumo_medio || 'N/A'} km/l
+                        </div>
+                    </div>
+                `;
+                document.getElementById('resumoRapido').innerHTML = html;
+            })
+            .catch(err => {
+                document.getElementById('resumoRapido').innerHTML = '<p class="text-danger">Erro ao carregar dados</p>';
+            });
+    }
+
+    function exportarRelatorio() {
+        const veiculoId = document.getElementById('veiculoRel').value;
+        const formato = document.querySelector('input[name="formato"]:checked').value;
+
+        if (!veiculoId) {
+            alert('Selecione um veículo!');
+            return;
+        }
+
+        if (formato === 'pdf') {
+            window.location.href = `/api/financeiro/relatorio-pdf/${veiculoId}`;
+        } else {
+            window.location.href = `/api/financeiro/relatorio-csv/${veiculoId}`;
+        }
+    }
+</script>
+{% endblock %}

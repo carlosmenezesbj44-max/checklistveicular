@@ -1,0 +1,1699 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Skip link para acessibilidade -->
+<a href="#main-content" class="sr-only sr-only-focusable position-absolute" style="top: -40px; left: 6px; z-index: 9999; background: #10b981; color: white; padding: 8px; text-decoration: none; border-radius: 4px;">Pular para conteúdo principal</a>
+
+<script src="{{ url_for('static', filename='js/icons.js') }}"></script>
+
+<script>
+  console.log('[CHECKLIST] Script inline carregado imediatamente');
+</script>
+
+<div class="container-fluid px-4 py-3 dark-mode" id="main-container">
+  <!-- Header Moderno com Navegação Superior -->
+  <div class="modern-header mb-4">
+    <div class="header-content">
+      <div class="header-main">
+        <div class="breadcrumb-section">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+              <li class="breadcrumb-item">
+                <a href="{{ url_for('index') }}" class="text-decoration-none">
+                  <i class="bi bi-house-door"></i> Início
+                </a>
+              </li>
+              <li class="breadcrumb-item">
+                <a href="{{ url_for('detalhes', veiculo_id=reg.id) }}" class="text-decoration-none">
+                  Detalhes do Veículo
+                </a>
+              </li>
+              <li class="breadcrumb-item active" aria-current="page">Editar Checklist</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="title-section">
+          <h1 class="page-title mb-2">
+            <i class="bi bi-pencil-square text-primary me-2"></i>
+            Editar Checklist
+          </h1>
+          <div class="vehicle-info d-flex flex-wrap gap-3">
+            <div class="info-item">
+              <i class="bi bi-car-front text-muted me-1"></i>
+              <strong>{{ reg.placa or '-' }}</strong>
+            </div>
+            <div class="info-item">
+              <i class="bi bi-tag text-muted me-1"></i>
+              <span>{{ reg.modelo or '-' }}</span>
+            </div>
+            <div class="info-item">
+              <i class="bi bi-person text-muted me-1"></i>
+              <span>{{ reg.condutor or '-' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="action-buttons d-flex gap-2 flex-wrap">
+          <a href="{{ url_for('detalhes', veiculo_id=reg.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>
+            <span class="d-none d-sm-inline">Voltar aos Detalhes</span>
+            <span class="d-inline d-sm-none">Voltar</span>
+          </a>
+          <a href="{{ url_for('pdf', veiculo_id=reg.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i>
+            <span class="d-none d-sm-inline">Gerar PDF</span>
+            <span class="d-inline d-sm-none">PDF</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerta para Admin -->
+  {% if is_admin %}
+  <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+    <i class="bi bi-shield-check"></i>
+    <strong>Modo Administrador Ativo:</strong> Você tem permissão para alterar o tipo de veículo (Carro/Moto).
+    Usuários comuns não podem fazer essa alteração.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endif %}
+
+  <!-- Formulário Principal -->
+  <form action="{{ url_for('editar_checklist', veiculo_id=reg.id) }}" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+
+    <!-- Seção de Informações do Veículo - Layout Melhorado -->
+    <div class="vehicle-info-section mb-4">
+      <div class="row g-4">
+        <!-- Informações Básicas -->
+        <div class="col-lg-8">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header bg-light">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-info-circle text-primary me-2"></i>
+                <h5 class="mb-0">Informações do Veículo</h5>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <!-- Primeira linha -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="bi bi-car-front text-muted me-1"></i>Tipo de Veículo
+                    {% if is_admin %}
+                    <span class="badge bg-warning text-dark ms-1">Admin</span>
+                    {% endif %}
+                  </label>
+                  <div class="input-group">
+                    <select class="form-select tipo-select" name="tipo" id="tipo-select" required>
+                      <option value="Carro" {% if reg.tipo == 'Carro' %}selected{% endif %}>🚗 Carro</option>
+                      <option value="Moto" {% if reg.tipo == 'Moto' %}selected{% endif %}>🏍️ Moto</option>
+                    </select>
+                    <button class="btn btn-outline-primary" type="button" id="atualizar-itens-btn" title="Atualizar itens do checklist">
+                      <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                  </div>
+                  {% if is_admin %}
+                  <small class="text-success"><i class="bi bi-shield-check"></i> Você pode alterar o tipo</small>
+                  {% else %}
+                  <small class="text-muted"><i class="bi bi-lock"></i> Apenas admin pode alterar</small>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="bi bi-tag text-muted me-1"></i>Placa
+                  </label>
+                  <input type="text" class="form-control" name="placa" value="{{ reg.placa or '' }}" required placeholder="ABC-1234">
+                </div>
+
+                <!-- Segunda linha -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="bi bi-car-front text-muted me-1"></i>Modelo
+                  </label>
+                  <input type="text" class="form-control" name="modelo" value="{{ reg.modelo or '' }}" disabled>
+                  <small class="text-muted"><i class="bi bi-info-circle"></i> Não pode ser alterado</small>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="bi bi-person text-muted me-1"></i>Condutor Atual
+                  </label>
+                  <input type="text" class="form-control" name="condutor" value="{{ reg.condutor or '' }}" placeholder="Nome do condutor">
+                </div>
+
+                <!-- Terceira linha -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="bi bi-speedometer text-muted me-1"></i>Quilometragem Atual
+                  </label>
+                  <div class="input-group">
+                    <input type="number" min="0" class="form-control" name="quilometragem" value="{{ reg.quilometragem or '' }}" placeholder="0">
+                    <span class="input-group-text">km</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar text-muted me-1"></i>Última Troca de Óleo
+                  </label>
+                  <input type="date" class="form-control" name="oleo_data" value="{{ reg.oleo_data or '' }}">
+                </div>
+
+                <!-- Quarta linha -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="bi bi-gear text-muted me-1"></i>KM da Última Troca
+                  </label>
+                  <div class="input-group">
+                    <input type="number" min="0" class="form-control" name="oleo_km" value="{{ reg.oleo_km or '' }}" placeholder="0">
+                    <span class="input-group-text">km</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <!-- Espaço reservado para futura expansão -->
+                </div>
+
+                <!-- Observações -->
+                <div class="col-12">
+                  <label class="form-label fw-semibold">
+                    <i class="bi bi-chat-dots text-muted me-1"></i>Observações Gerais
+                  </label>
+                  <textarea class="form-control" name="observacoes" rows="3" placeholder="Observações sobre o veículo ou checklist...">{{ reg.observacoes or '' }}</textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel Lateral com Estatísticas -->
+        <div class="col-lg-4">
+          <div class="stats-panel">
+            <!-- Status do Checklist -->
+            <div class="card mb-3 shadow-sm">
+              <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                  <i class="bi bi-bar-chart-line me-1"></i>Status do Checklist
+                </h6>
+              </div>
+              <div class="card-body text-center">
+                <div class="progress-circle-large mb-3" id="sidebar-progress-circle">
+                  <span class="progress-text-large fw-bold" id="sidebar-progress-text">0%</span>
+                </div>
+                <div class="progress-stats">
+                  <div class="stat-item">
+                    <span class="stat-number" id="sidebar-checked-count">0</span>
+                    <small class="text-muted d-block">Verificados</small>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-number" id="sidebar-total-count">{{ pneus|length + fluidos|length + (itens_disponibles|reject('in', pneus)|reject('in', fluidos)|list)|length }}</span>
+                    <small class="text-muted d-block">Total</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Última Atualização -->
+            <div class="card shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="bi bi-clock-history me-1"></i>Informações
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="info-list">
+                  <div class="info-item mb-2">
+                    <i class="bi bi-calendar-event text-muted me-2"></i>
+                    <small>Criado: <strong>{{ reg.data_criacao|strftime('%d/%m/%Y') if reg.data_criacao else 'N/A' }}</strong></small>
+                  </div>
+                  <div class="info-item mb-2">
+                    <i class="bi bi-pencil text-muted me-2"></i>
+                    <small>Última edição: <strong>{{ reg.data_atualizacao|strftime('%d/%m/%Y') if reg.data_atualizacao else 'Nunca' }}</strong></small>
+                  </div>
+                  <div class="info-item">
+                    <i class="bi bi-person-badge text-muted me-2"></i>
+                    <small>Responsável: <strong>{{ reg.responsavel or 'N/A' }}</strong></small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card com Itens do Checklist - Design Renovado -->
+    <div class="card shadow-lg border-0 modern-checklist-card">
+      <div class="card-header bg-gradient-primary text-white position-relative overflow-hidden">
+        <div class="header-pattern"></div>
+        <div class="d-flex justify-content-between align-items-center position-relative">
+          <div class="d-flex align-items-center">
+            <div class="header-icon me-3">
+              <i class="bi bi-checklist-check display-6"></i>
+            </div>
+            <div>
+              <h5 class="mb-1 fw-bold">Itens do Checklist</h5>
+              <p class="mb-0 opacity-75 small">Inspeção sistemática do veículo</p>
+            </div>
+          </div>
+          <div class="progress-section text-end">
+            <div class="progress-circle mb-2" id="progress-circle">
+              <span class="progress-text fw-bold" id="progress-text">0%</span>
+            </div>
+            <small class="text-white-50">
+              <i class="bi bi-bar-chart-line me-1"></i>
+              <span id="checked-count">0</span> de <span id="total-count">{{ pneus|length + fluidos|length + (itens_disponibles|reject('in', pneus)|reject('in', fluidos)|list)|length }}</span> itens
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <!-- Barra de Progresso Visual -->
+        <div class="progress mb-4" style="height: 8px;">
+          <div class="progress-bar bg-gradient-success" role="progressbar" style="width: 0%" id="progress-bar"></div>
+        </div>
+
+        <!-- Barra de Ferramentas do Checklist -->
+        <div class="checklist-toolbar mb-4">
+          <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+              <div class="search-container">
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                  </span>
+                  <input type="text" class="form-control" id="item-search" placeholder="Buscar itens do checklist...">
+                  <button class="btn btn-outline-secondary" type="button" id="clear-search">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="toolbar-actions d-flex gap-2 justify-content-end">
+                <div class="btn-group" role="group">
+                  <input type="radio" class="btn-check" name="filter-status" id="filter-all" autocomplete="off" checked>
+                  <label class="btn btn-outline-secondary btn-sm" for="filter-all">Todos</label>
+
+                  <input type="radio" class="btn-check" name="filter-status" id="filter-checked" autocomplete="off">
+                  <label class="btn btn-outline-success btn-sm" for="filter-checked">Verificados</label>
+
+                  <input type="radio" class="btn-check" name="filter-status" id="filter-unchecked" autocomplete="off">
+                  <label class="btn btn-outline-warning btn-sm" for="filter-unchecked">Pendentes</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seções do Checklist -->
+        <div class="checklist-sections">
+          <!-- Pneus - Design Renovado -->
+          <div class="modern-section mb-4" data-section="pneus">
+            <div class="section-header-modern d-flex align-items-center justify-content-between mb-3">
+              <div class="d-flex align-items-center flex-grow-1">
+                <button class="btn btn-link p-0 me-3 section-toggle" data-target="pneus">
+                  <i class="bi bi-chevron-down section-icon"></i>
+                </button>
+                <div class="section-icon-modern me-3 bg-gradient-blue">
+                  <i class="bi bi-circle-fill text-white"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <h6 class="fw-bold mb-0 text-dark section-title">Pneus e Rodas</h6>
+                  <small class="text-muted">Estado dos pneus, estepe e acessórios</small>
+                </div>
+              </div>
+              <div class="section-stats d-flex align-items-center gap-2">
+                <span class="modern-badge bg-blue" id="pneus-count">0/{{ pneus|length }}</span>
+                <div class="section-progress">
+                  <div class="progress mini-progress" style="width: 60px; height: 4px;">
+                    <div class="progress-bar bg-blue" id="pneus-progress" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="section-content row g-3" id="pneus-content">
+              {% for item in pneus %}
+              <div class="col-md-6 col-lg-4 item-container" data-item-name="{{ item|lower }}">
+                <div class="modern-item-card priority-normal">
+                  <div class="item-header d-flex align-items-center justify-content-between mb-2">
+                    <div class="item-checkbox">
+                      <input class="modern-checkbox checklist-item" type="checkbox" name="itens[]" value="{{ item }}"
+                        {% if item in itens_atuais %}checked{% endif %} id="item-{{ loop.index }}">
+                      <label for="item-{{ loop.index }}" class="checkbox-label"></label>
+                    </div>
+                    <div class="item-status">
+                      <i class="bi bi-circle status-indicator" id="status-{{ loop.index }}"></i>
+                    </div>
+                  </div>
+                  <div class="item-content">
+                    <h6 class="item-title mb-2">{{ item }}</h6>
+                    <div class="comment-section">
+                      <input type="text" class="modern-comment-input" name="comentarios[]" placeholder="Adicionar comentário..."
+                        value="{{ itens_atuais.get(item, '') or '' }}">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Fluidos - Design Renovado -->
+          <div class="modern-section mb-4" data-section="fluidos">
+            <div class="section-header-modern d-flex align-items-center justify-content-between mb-3">
+              <div class="d-flex align-items-center flex-grow-1">
+                <button class="btn btn-link p-0 me-3 section-toggle" data-target="fluidos">
+                  <i class="bi bi-chevron-down section-icon"></i>
+                </button>
+                <div class="section-icon-modern me-3 bg-gradient-cyan">
+                  <i class="bi bi-droplet-fill text-white"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <h6 class="fw-bold mb-0 text-dark section-title">Fluidos e Óleos</h6>
+                  <small class="text-muted">Níveis de fluidos e condições dos óleos</small>
+                </div>
+              </div>
+              <div class="section-stats d-flex align-items-center gap-2">
+                <span class="modern-badge bg-cyan" id="fluidos-count">0/{{ fluidos|length }}</span>
+                <div class="section-progress">
+                  <div class="progress mini-progress" style="width: 60px; height: 4px;">
+                    <div class="progress-bar bg-cyan" id="fluidos-progress" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="section-content row g-3" id="fluidos-content">
+              {% for item in fluidos %}
+              <div class="col-md-6 col-lg-4 item-container" data-item-name="{{ item|lower }}">
+                <div class="modern-item-card priority-high">
+                  <div class="item-header d-flex align-items-center justify-content-between mb-2">
+                    <div class="item-checkbox">
+                      <input class="modern-checkbox checklist-item" type="checkbox" name="itens[]" value="{{ item }}"
+                        {% if item in itens_atuais %}checked{% endif %} id="item-fluid-{{ loop.index }}">
+                      <label for="item-fluid-{{ loop.index }}" class="checkbox-label"></label>
+                    </div>
+                    <div class="item-status">
+                      <i class="bi bi-circle status-indicator" id="status-fluid-{{ loop.index }}"></i>
+                    </div>
+                  </div>
+                  <div class="item-content">
+                    <h6 class="item-title mb-2">{{ item }}</h6>
+                    <div class="comment-section">
+                      <input type="text" class="modern-comment-input" name="comentarios[]" placeholder="Adicionar comentário..."
+                        value="{{ itens_atuais.get(item, '') or '' }}">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Outros Itens - Design Renovado -->
+          <div class="modern-section" data-section="outros">
+            <div class="section-header-modern d-flex align-items-center justify-content-between mb-3">
+              <div class="d-flex align-items-center flex-grow-1">
+                <button class="btn btn-link p-0 me-3 section-toggle" data-target="outros">
+                  <i class="bi bi-chevron-down section-icon"></i>
+                </button>
+                <div class="section-icon-modern me-3 bg-gradient-purple">
+                  <i class="bi bi-gear-fill text-white"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <h6 class="fw-bold mb-0 text-dark section-title">Outros Componentes</h6>
+                  <small class="text-muted">Elétricos, mecânicos e acessórios diversos</small>
+                </div>
+              </div>
+              <div class="section-stats d-flex align-items-center gap-2">
+                <span class="modern-badge bg-purple" id="outros-count">0/{{ (itens_disponibles|reject('in', pneus)|reject('in', fluidos)|list)|length }}</span>
+                <div class="section-progress">
+                  <div class="progress mini-progress" style="width: 60px; height: 4px;">
+                    <div class="progress-bar bg-purple" id="outros-progress" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="section-content row g-3" id="outros-content">
+              {% for item in itens_disponibles %}
+                {% if item not in pneus and item not in fluidos %}
+                <div class="col-md-6 col-lg-4 item-container" data-item-name="{{ item|lower }}">
+                  <div class="modern-item-card priority-low">
+                    <div class="item-header d-flex align-items-center justify-content-between mb-2">
+                      <div class="item-checkbox">
+                        <input class="modern-checkbox checklist-item" type="checkbox" name="itens[]" value="{{ item }}"
+                          {% if item in itens_atuais %}checked{% endif %} id="item-outro-{{ loop.index }}">
+                        <label for="item-outro-{{ loop.index }}" class="checkbox-label"></label>
+                      </div>
+                      <div class="item-status">
+                        <i class="bi bi-circle status-indicator" id="status-outro-{{ loop.index }}"></i>
+                      </div>
+                    </div>
+                    <div class="item-content">
+                      <h6 class="item-title mb-2">
+                       {% if 'Pneu' in item or 'Estepe' in item %}
+                       <i class="bi bi-circle-fill me-2" style="font-size: 1.1em; color: #ffa500;"></i>
+                       {% elif 'Fluido' in item or 'óleo' in item or 'Óleo' in item %}
+                       <i class="bi bi-droplet-fill me-2" style="font-size: 1.1em; color: #000;"></i>
+                       {% elif 'Água' in item %}
+                       <i class="bi bi-droplet-fill me-2" style="font-size: 1.1em; color: #add8e6;"></i>
+                       {% elif 'Farol' in item or 'Lanterna' in item or 'Pisca' in item or 'Luz' in item %}
+                       <i class="bi bi-lightbulb-fill me-2" style="font-size: 1.1em; color: #ffd700;"></i>
+                       {% endif %}
+                       {{ item }}
+                     </h6>
+                      <div class="comment-section">
+                        <input type="text" class="modern-comment-input" name="comentarios[]" placeholder="Adicionar comentário..."
+                          value="{{ itens_atuais.get(item, '') or '' }}">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Dicas Modernas -->
+        <div class="modern-tips mt-4">
+          <div class="tips-header d-flex align-items-center mb-3">
+            <div class="tips-icon me-3">
+              <i class="bi bi-lightbulb text-warning"></i>
+            </div>
+            <h6 class="fw-bold mb-0 text-dark">Dicas para Inspeção</h6>
+          </div>
+          <div class="tips-content">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="tip-card">
+                  <i class="bi bi-check-circle text-success me-2"></i>
+                  <span class="small">Marque apenas itens verificados</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="tip-card">
+                  <i class="bi bi-chat-dots text-info me-2"></i>
+                  <span class="small">Use comentários para observações</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="tip-card">
+                  <i class="bi bi-clock text-warning me-2"></i>
+                  <span class="small">Itens não marcados = não verificado</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de Ações Fixa na Parte Inferior -->
+    <div class="fixed-action-bar">
+      <div class="action-bar-content">
+        <div class="action-bar-left">
+          <div class="action-info">
+            <small class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              <span id="action-info-text">0 de {{ pneus|length + fluidos|length + (itens_disponibles|reject('in', pneus)|reject('in', fluidos)|list)|length }} itens verificados</span>
+            </small>
+          </div>
+        </div>
+        <div class="action-bar-center">
+          <div class="quick-actions">
+            <button type="button" class="btn btn-outline-warning btn-sm me-2" onclick="limparSelecao()" title="Limpar todas as seleções">
+              <i class="bi bi-eraser me-1"></i>
+              <span class="d-none d-md-inline">Limpar</span>
+            </button>
+            <button type="button" class="btn btn-outline-info btn-sm" onclick="expandirTodos()" title="Expandir todas as seções">
+              <i class="bi bi-chevron-down me-1"></i>
+              <span class="d-none d-md-inline">Expandir</span>
+            </button>
+          </div>
+        </div>
+        <div class="action-bar-right">
+          <div class="main-actions">
+            <a href="{{ url_for('detalhes', veiculo_id=reg.id) }}" class="btn btn-outline-secondary btn-sm me-2">
+              <i class="bi bi-arrow-left me-1"></i>
+              <span class="d-none d-lg-inline">Cancelar</span>
+            </a>
+            <button type="submit" class="btn btn-success btn-lg px-4">
+              <i class="bi bi-check-circle-fill me-2"></i>
+              Salvar Checklist
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Espaçamento para a barra fixa -->
+    <div class="fixed-action-spacer"></div>
+  </form>
+</div>
+
+<style>
+  /* Dark Mode Styles */
+  .dark-mode {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  .dark-mode .modern-header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.1);
+  }
+
+  .dark-mode .breadcrumb-item a {
+    color: #cbd5e1;
+  }
+
+  .dark-mode .breadcrumb-item.active {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .page-title {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .vehicle-info .info-item {
+    color: #cbd5e1;
+  }
+
+  .dark-mode .card {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .card-header {
+    background: #0f172a !important;
+    border-bottom-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .form-control,
+  .dark-mode .form-select {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .form-control:focus,
+  .dark-mode .form-select:focus {
+    background: #0f172a;
+    border-color: #10b981;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .input-group-text {
+    background: #0f172a;
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+
+  .dark-mode .form-label {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .text-muted {
+    color: #94a3b8 !important;
+  }
+
+  .dark-mode .modern-checklist-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .dark-mode .modern-section h6 {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .modern-item-card {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .dark-mode .item-title {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .modern-comment-input {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .modern-comment-input:focus {
+    background: #1e293b;
+    border-color: #10b981;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .fixed-action-bar {
+    background: #1e293b;
+    border-top-color: #334155;
+  }
+
+  .dark-mode .alert {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .btn-outline-secondary {
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+
+  .dark-mode .btn-outline-secondary:hover {
+    background: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .btn-outline-primary {
+    border-color: #10b981;
+    color: #10b981;
+  }
+
+  .dark-mode .btn-outline-primary:hover {
+    background: #10b981;
+    color: white;
+  }
+
+  .dark-mode .btn-outline-warning {
+    border-color: #f59e0b;
+    color: #f59e0b;
+  }
+
+  .dark-mode .btn-outline-warning:hover {
+    background: #f59e0b;
+    color: white;
+  }
+
+  .dark-mode .btn-outline-info {
+    border-color: #06b6d4;
+    color: #06b6d4;
+  }
+
+  .dark-mode .btn-outline-info:hover {
+    background: #06b6d4;
+    color: white;
+  }
+
+  .dark-mode .progress {
+    background: #334155;
+  }
+
+  .dark-mode .progress-bar {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  .dark-mode .modern-badge {
+    color: white;
+  }
+
+  .dark-mode .status-indicator {
+    color: #94a3b8;
+  }
+
+  .dark-mode .status-indicator.text-success {
+    color: #10b981 !important;
+  }
+
+  .dark-mode .tip-card {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .fixed-action-spacer {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+
+  .dark-mode .bg-gradient-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  }
+
+  .dark-mode .bg-light {
+    background: #0f172a !important;
+  }
+
+  .dark-mode .bg-primary {
+    background: #0f172a !important;
+  }
+
+  .dark-mode .text-primary {
+    color: #10b981 !important;
+  }
+
+  .dark-mode .text-success {
+    color: #10b981 !important;
+  }
+
+  .dark-mode .text-info {
+    color: #06b6d4 !important;
+  }
+
+  .dark-mode .text-warning {
+    color: #f59e0b !important;
+  }
+
+  .dark-mode .text-dark {
+    color: #e2e8f0 !important;
+  }
+
+  .dark-mode .border {
+    border-color: #334155 !important;
+  }
+
+  .dark-mode .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .dark-mode .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* Dark Mode - Specific Elements */
+  .dark-mode .modern-section {
+    background: #1e293b;
+    border: 1px solid #334155;
+  }
+
+  .dark-mode .section-header-modern {
+    border-bottom: 1px solid #334155;
+  }
+
+  .dark-mode .modern-item-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    transition: all 0.3s ease;
+  }
+
+  .dark-mode .modern-item-card:hover {
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+
+  .dark-mode .modern-checkbox {
+    accent-color: #10b981;
+  }
+
+  .dark-mode .checkbox-label {
+    background: #10b981;
+  }
+
+  .dark-mode .modern-tips {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+  }
+
+  .dark-mode .tips-header {
+    border-bottom: 1px solid #334155;
+  }
+
+  .dark-mode .fixed-action-bar {
+    background: #1e293b;
+    border-top: 1px solid #334155;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Dark Mode - Buttons */
+  .dark-mode .btn-success {
+    background: #10b981;
+    border-color: #10b981;
+  }
+
+  .dark-mode .btn-success:hover {
+    background: #059669;
+    border-color: #059669;
+  }
+
+  .dark-mode .btn-lg {
+    padding: 0.75rem 1.5rem;
+  }
+
+  /* Dark Mode - Progress Circles */
+  .dark-mode .progress-circle,
+  .dark-mode .progress-circle-large {
+    background: conic-gradient(#10b981 0deg, #334155 0deg);
+  }
+
+  /* Dark Mode - Breadcrumb */
+  .dark-mode .breadcrumb {
+    background: transparent;
+  }
+
+  .dark-mode .breadcrumb-item + .breadcrumb-item::before {
+    color: #94a3b8;
+  }
+
+  /* Dark Mode - Alerts */
+  .dark-mode .alert-info {
+    background: rgba(6, 182, 212, 0.1);
+    border-color: rgba(6, 182, 212, 0.2);
+    color: #06b6d4;
+  }
+
+  .dark-mode .alert-info .alert-link {
+    color: #22d3ee;
+  }
+
+  /* Dark Mode - Badges */
+  .dark-mode .badge {
+    background: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .bg-blue {
+    background: #3b82f6 !important;
+  }
+
+  .dark-mode .bg-cyan {
+    background: #06b6d4 !important;
+  }
+
+  .dark-mode .bg-purple {
+    background: #8b5cf6 !important;
+  }
+
+  /* Checklist Toolbar Styles */
+  .checklist-toolbar {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .dark-mode .checklist-toolbar {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .search-container .input-group-text {
+    background: #0f172a;
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+
+  .dark-mode .search-container .input-group-text {
+    background: #1e293b;
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+
+  .toolbar-actions .btn-outline-secondary {
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+
+  .toolbar-actions .btn-outline-secondary:hover {
+    background: #334155;
+    color: #e2e8f0;
+  }
+
+  .toolbar-actions .btn-outline-success {
+    border-color: #10b981;
+    color: #10b981;
+  }
+
+  .toolbar-actions .btn-outline-success:hover {
+    background: #10b981;
+    color: white;
+  }
+
+  .toolbar-actions .btn-outline-warning {
+    border-color: #f59e0b;
+    color: #f59e0b;
+  }
+
+  .toolbar-actions .btn-outline-warning:hover {
+    background: #f59e0b;
+    color: white;
+  }
+
+  /* Section Toggle Styles */
+  .section-toggle {
+    color: #6b7280;
+    border: none;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .section-toggle:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+
+  .section-toggle .section-icon {
+    transition: transform 0.2s ease;
+  }
+
+  .modern-section.collapsed .section-toggle .section-icon {
+    transform: rotate(-90deg);
+  }
+
+  .section-content {
+    transition: all 0.3s ease;
+  }
+
+  .modern-section.collapsed .section-content {
+    display: none !important;
+  }
+
+  /* Mini Progress Bars */
+  .mini-progress {
+    background: #e9ecef;
+    border-radius: 2px;
+  }
+
+  .dark-mode .mini-progress {
+    background: #334155;
+  }
+
+  .mini-progress .progress-bar {
+    border-radius: 2px;
+  }
+
+  /* Priority Styles */
+  .priority-high {
+    border-left: 4px solid #ef4444;
+  }
+
+  .priority-normal {
+    border-left: 4px solid #f59e0b;
+  }
+
+  .priority-low {
+    border-left: 4px solid #10b981;
+  }
+
+  .dark-mode .priority-high {
+    border-left-color: #ef4444;
+  }
+
+  .dark-mode .priority-normal {
+    border-left-color: #f59e0b;
+  }
+
+  .dark-mode .priority-low {
+    border-left-color: #10b981;
+  }
+
+  /* Item Filtering */
+  .item-container.hidden {
+    display: none !important;
+  }
+
+  .item-container.filtered-out {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* Section Progress Updates */
+  .section-progress .progress-bar.bg-blue {
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  }
+
+  .section-progress .progress-bar.bg-cyan {
+    background: linear-gradient(90deg, #06b6d4, #0891b2);
+  }
+
+  .section-progress .progress-bar.bg-purple {
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+  }
+
+  /* Dark Mode - Additional Elements */
+  .dark-mode .vehicle-info-section {
+    background: transparent;
+  }
+
+  .dark-mode .stats-panel {
+    background: transparent;
+  }
+
+  .dark-mode .info-list .info-item {
+    color: #cbd5e1;
+  }
+
+  .dark-mode .info-list .info-item strong {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .stat-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .dark-mode .stat-card .stat-value {
+    color: #10b981;
+  }
+
+  .dark-mode .stat-card .stat-label {
+    color: #94a3b8;
+  }
+
+  .dark-mode .progress-circle-large {
+    border: 4px solid #334155;
+  }
+
+  .dark-mode .progress-circle {
+    border: 3px solid #334155;
+  }
+
+  .dark-mode .progress-text-large,
+  .dark-mode .progress-text {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .action-bar-content {
+    background: #1e293b;
+  }
+
+  .dark-mode .action-info small {
+    color: #94a3b8;
+  }
+
+  .dark-mode .action-info strong {
+    color: #10b981;
+  }
+
+  /* Dark Mode - Icons */
+  .dark-mode .bi {
+    color: #cbd5e1;
+  }
+
+  .dark-mode .text-success .bi {
+    color: #10b981 !important;
+  }
+
+  .dark-mode .text-info .bi {
+    color: #06b6d4 !important;
+  }
+
+  .dark-mode .text-warning .bi {
+    color: #f59e0b !important;
+  }
+
+  .dark-mode .text-primary .bi {
+    color: #10b981 !important;
+  }
+
+  /* Dark Mode - Links */
+  .dark-mode a {
+    color: #10b981;
+  }
+
+  .dark-mode a:hover {
+    color: #22d3ee;
+  }
+
+  .dark-mode .text-decoration-none {
+    color: inherit !important;
+  }
+
+  .dark-mode .text-decoration-none:hover {
+    color: inherit !important;
+  }
+
+  /* Dark Mode - Form Elements */
+  .dark-mode .form-check-label {
+    color: #e2e8f0;
+  }
+
+  .dark-mode ::placeholder {
+    color: #94a3b8 !important;
+  }
+
+  /* Dark Mode - Tables (if any) */
+  .dark-mode .table {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .table thead th {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .table tbody td {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  /* Dark Mode - Specific Overrides */
+  .dark-mode body {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0;
+  }
+
+  .dark-mode .container-fluid {
+    background: transparent;
+  }
+
+  /* Ensure all text is visible in dark mode */
+  .dark-mode * {
+    color: inherit;
+  }
+
+  .dark-mode .text-white {
+    color: #e2e8f0 !important;
+  }
+
+  .dark-mode .text-light {
+    color: #cbd5e1 !important;
+  }
+
+  /* Light Mode Styles */
+  .input-group-text {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+  }
+
+  .form-check-input {
+    width: 1.25em;
+    height: 1.25em;
+    margin-top: 0.3em;
+    cursor: pointer;
+  }
+
+  .card-header {
+    font-weight: 600;
+  }
+
+  .btn-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+  }
+
+  .btn-gradient:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('[CHECKLIST] Script iniciado');
+
+  // Itens de Carro (sincronizado com services.py)
+  const ITENS_CARRO = [
+    "Farol Esq.", "Farol Dir.", "Pisca Esq.", "Pisca Dir.",
+    "Lanterna Esq.", "Lanterna Dir.", "Luz de ré", "Luz de freio",
+    "Retrovisor Esq.", "Retrovisor Dir.", "Pneus Dianteiros", "Pneus Traseiros",
+    "Estepe", "Triângulo", "Macaco", "Chave de roda", "Limpador de para-brisa",
+    "Vidros", "Lataria", "Interior", "Fluido de freio", "Água do Carro"
+  ];
+
+  // Itens de Moto (sincronizado com services.py)
+  const ITENS_MOTO = [
+    "Farol", "Pisca Esq.", "Pisca Dir.", "Lanterna", "Luz de freio",
+    "Retrovisor Esq.", "Retrovisor Dir.", "Pneus Dianteiros", "Pneus Traseiros",
+    "Estepe (se aplicável)", "Triângulo (se aplicável)", "Macaco (se aplicável)",
+    "Limpador de para-brisa", "Vidros", "Lataria", "Interior", "Fluido de freio", "Água do Carro"
+  ];
+
+  console.log('[CHECKLIST] Itens carregados. Carro:', ITENS_CARRO.length, 'Moto:', ITENS_MOTO.length);
+
+  // Funções para categorizar itens
+  function isPneu(item) {
+    return item.includes('Pneu') || item.includes('pneu') || item.includes('Estepe');
+  }
+
+  function isFluid(item) {
+    return item.includes('Fluido') || item.includes('Água') || item.includes('fluido');
+  }
+
+  function categorizeItems(items) {
+    return {
+      pneus: items.filter(isPneu),
+      fluidos: items.filter(isFluid),
+      outros: items.filter(item => !isPneu(item) && !isFluid(item))
+    };
+  }
+
+  // Função para atualizar contadores e progresso
+  function atualizarProgresso() {
+    const totalItens = document.querySelectorAll('.checklist-item').length;
+    const itensMarcados = document.querySelectorAll('.checklist-item:checked').length;
+    const porcentagem = totalItens > 0 ? Math.round((itensMarcados / totalItens) * 100) : 0;
+
+    // Atualizar progresso geral - Header
+    document.getElementById('progress-text').textContent = porcentagem + '%';
+    document.getElementById('checked-count').textContent = itensMarcados;
+    document.getElementById('progress-bar').style.width = porcentagem + '%';
+
+    // Atualizar círculo de progresso - Header
+    const progressCircle = document.getElementById('progress-circle');
+    if (progressCircle) {
+      progressCircle.style.background = `conic-gradient(var(--success-color) ${porcentagem * 3.6}deg, #e9ecef 0deg)`;
+    }
+
+    // Atualizar barra de ações fixa
+    const actionInfoText = document.getElementById('action-info-text');
+    if (actionInfoText) {
+      actionInfoText.textContent = `${itensMarcados} de ${totalItens} itens verificados`;
+    }
+
+    // Atualizar painel lateral
+    const sidebarProgressText = document.getElementById('sidebar-progress-text');
+    const sidebarCheckedCount = document.getElementById('sidebar-checked-count');
+    const sidebarProgressCircle = document.getElementById('sidebar-progress-circle');
+
+    if (sidebarProgressText) sidebarProgressText.textContent = porcentagem + '%';
+    if (sidebarCheckedCount) sidebarCheckedCount.textContent = itensMarcados;
+
+    if (sidebarProgressCircle) {
+      sidebarProgressCircle.style.background = `conic-gradient(#10b981 ${porcentagem * 3.6}deg, #e9ecef 0deg)`;
+    }
+
+    // Atualizar contadores por seção
+    const secoes = ['pneus', 'fluidos', 'outros'];
+    secoes.forEach(secao => {
+      const itensSecao = document.querySelectorAll(`[data-section="${secao}"] .checklist-item`);
+      const marcadosSecao = document.querySelectorAll(`[data-section="${secao}"] .checklist-item:checked`);
+      const countElement = document.getElementById(`${secao}-count`);
+      const progressElement = document.getElementById(`${secao}-progress`);
+
+      if (countElement) {
+        countElement.textContent = marcadosSecao.length + '/' + itensSecao.length;
+
+        // Atualizar cor do badge baseado no progresso da seção
+        const porcentagemSecao = itensSecao.length > 0 ? Math.round((marcadosSecao.length / itensSecao.length) * 100) : 0;
+        if (porcentagemSecao === 100) {
+          countElement.className = `modern-badge bg-${secao === 'pneus' ? 'blue' : secao === 'fluidos' ? 'cyan' : 'purple'} success`;
+        } else if (porcentagemSecao > 0) {
+          countElement.className = `modern-badge bg-${secao === 'pneus' ? 'blue' : secao === 'fluidos' ? 'cyan' : 'purple'} partial`;
+        } else {
+          countElement.className = `modern-badge bg-${secao === 'pneus' ? 'blue' : secao === 'fluidos' ? 'cyan' : 'purple'}`;
+        }
+
+        // Atualizar barra de progresso da seção
+        if (progressElement) {
+          progressElement.style.width = porcentagemSecao + '%';
+        }
+      }
+    });
+
+    // Atualizar indicadores visuais dos itens
+    document.querySelectorAll('.checklist-item').forEach((checkbox, index) => {
+      const statusIndicator = document.getElementById(`status-${checkbox.id.split('-').pop()}`) ||
+                             document.getElementById(`status-fluid-${checkbox.id.split('-').pop()}`) ||
+                             document.getElementById(`status-outro-${checkbox.id.split('-').pop()}`);
+
+      if (statusIndicator) {
+        if (checkbox.checked) {
+          statusIndicator.className = 'bi bi-check-circle-fill status-indicator text-success';
+        } else {
+          statusIndicator.className = 'bi bi-circle status-indicator text-muted';
+        }
+      }
+    });
+  }
+
+  // Função para expandir/colapsar seções
+  function expandirTodos() {
+    const secoes = document.querySelectorAll('.modern-section');
+    const btn = document.querySelector('button[onclick="expandirTodos()"]');
+    const icon = btn.querySelector('i');
+
+    // Verificar se alguma seção está colapsada
+    const algumaColapsada = Array.from(secoes).some(secao => secao.classList.contains('collapsed'));
+
+    if (algumaColapsada) {
+      // Expandir todas
+      secoes.forEach(secao => {
+        secao.classList.remove('collapsed');
+      });
+      icon.className = 'bi bi-chevron-up me-1';
+      btn.title = 'Colapsar todas as seções';
+    } else {
+      // Colapsar todas
+      secoes.forEach(secao => {
+        secao.classList.add('collapsed');
+      });
+      icon.className = 'bi bi-chevron-down me-1';
+      btn.title = 'Expandir todas as seções';
+    }
+  }
+
+  // Função para limpar seleção
+  function limparSelecao() {
+    if (confirm('Tem certeza que deseja limpar todas as seleções?')) {
+      document.querySelectorAll('.checklist-item').forEach(cb => {
+        cb.checked = false;
+      });
+      document.querySelectorAll('input[name="comentarios[]"]').forEach(input => {
+        input.value = '';
+      });
+      atualizarProgresso();
+    }
+  }
+
+  function atualizarSecao(sectionName, novoItens) {
+    console.log(`[CHECKLIST] Atualizando seção "${sectionName}" com ${novoItens.length} itens`);
+
+    const section = document.querySelector(`[data-section="${sectionName}"]`);
+    if (!section) {
+      console.error(`[CHECKLIST] Seção "${sectionName}" não encontrada no DOM`);
+      return;
+    }
+
+    const rowsContainer = section.querySelector('.row');
+    if (!rowsContainer) {
+      console.error(`[CHECKLIST] Container .row em "${sectionName}" não encontrado`);
+      return;
+    }
+
+    rowsContainer.innerHTML = '';
+
+    novoItens.forEach(item => {
+      const colDiv = document.createElement('div');
+      colDiv.className = 'col-md-6 col-lg-4';
+      colDiv.innerHTML = `
+        <div class="item-card">
+          <div class="input-group">
+            <span class="input-group-text">
+              <input class="form-check-input checklist-item" type="checkbox" name="itens[]" value="${item}">
+            </span>
+            <input type="text" class="form-control" value="${item}" readonly>
+            <input type="text" class="form-control" name="comentarios[]" placeholder="Comentário...">
+          </div>
+        </div>
+      `;
+      rowsContainer.appendChild(colDiv);
+    });
+
+    console.log(`[CHECKLIST] Seção "${sectionName}" atualizada com sucesso`);
+  }
+
+  // Atualizar todos os itens
+  function atualizarTodosItens() {
+    console.log('[CHECKLIST] === INICIANDO ATUALIZAÇÃO ===');
+
+    const tipoSelect = document.getElementById('tipo-select');
+    if (!tipoSelect) {
+      console.error('[CHECKLIST] Select com id "tipo-select" não encontrado');
+      alert('Erro: Campo de tipo não encontrado');
+      return;
+    }
+
+    const tipo = tipoSelect.value;
+    console.log(`[CHECKLIST] Tipo selecionado: ${tipo}`);
+
+    const itens = tipo === 'Carro' ? ITENS_CARRO : ITENS_MOTO;
+    const categorized = categorizeItems(itens);
+
+    console.log(`[CHECKLIST] Itens categorizados:`, {
+      pneus: categorized.pneus.length,
+      fluidos: categorized.fluidos.length,
+      outros: categorized.outros.length
+    });
+
+    // Limpar seleções
+    document.querySelectorAll('input[name="itens[]"]').forEach(cb => {
+      cb.checked = false;
+    });
+    document.querySelectorAll('input[name="comentarios[]"]').forEach(input => {
+      input.value = '';
+    });
+
+    // Atualizar seções
+    atualizarSecao('pneus', categorized.pneus);
+    atualizarSecao('fluidos', categorized.fluidos);
+    atualizarSecao('outros', categorized.outros);
+
+    // Re-inicializar event listeners após atualização
+    inicializarEventListeners();
+
+    console.log('[CHECKLIST] === ATUALIZAÇÃO CONCLUÍDA ===');
+  }
+
+  // Inicializar event listeners
+  function inicializarEventListeners() {
+    // Event listeners para checkboxes
+    document.querySelectorAll('.checklist-item').forEach(checkbox => {
+      checkbox.addEventListener('change', atualizarProgresso);
+    });
+
+    // Event listener para botão limpar
+    const btnLimpar = document.querySelector('button[onclick="limparSelecao()"]');
+    if (btnLimpar) {
+      btnLimpar.onclick = limparSelecao;
+    }
+  }
+
+  // Event listeners principais
+  const tipoSelect = document.getElementById('tipo-select');
+  const btnAtualizar = document.getElementById('atualizar-itens-btn');
+
+  if (tipoSelect) {
+    console.log('[CHECKLIST] Select de tipo encontrado, adicionando listeners');
+    tipoSelect.addEventListener('change', atualizarTodosItens);
+  }
+
+  if (btnAtualizar) {
+    console.log('[CHECKLIST] Botão de atualização encontrado, adicionando listener');
+    btnAtualizar.addEventListener('click', function(e) {
+      e.preventDefault();
+      atualizarTodosItens();
+    });
+  }
+
+  // Função de busca e filtro
+  function filtrarItens() {
+    const searchTerm = document.getElementById('item-search').value.toLowerCase();
+    const statusFilter = document.querySelector('input[name="filter-status"]:checked').id.replace('filter-', '');
+
+    const itemContainers = document.querySelectorAll('.item-container');
+
+    itemContainers.forEach(container => {
+      const itemName = container.dataset.itemName;
+      const checkbox = container.querySelector('.checklist-item');
+      const isChecked = checkbox.checked;
+
+      // Filtro de busca
+      const matchesSearch = itemName.includes(searchTerm);
+
+      // Filtro de status
+      let matchesStatus = true;
+      if (statusFilter === 'checked') {
+        matchesStatus = isChecked;
+      } else if (statusFilter === 'unchecked') {
+        matchesStatus = !isChecked;
+      }
+
+      // Aplicar filtros
+      if (matchesSearch && matchesStatus) {
+        container.classList.remove('hidden', 'filtered-out');
+      } else {
+        container.classList.add('filtered-out');
+        if (!matchesSearch) {
+          container.classList.add('hidden');
+        }
+      }
+    });
+
+    // Atualizar contadores visíveis
+    atualizarContadoresVisiveis();
+  }
+
+  // Função para atualizar contadores considerando filtros
+  function atualizarContadoresVisiveis() {
+    const secoes = ['pneus', 'fluidos', 'outros'];
+    secoes.forEach(secao => {
+      const totalItens = document.querySelectorAll(`[data-section="${secao}"] .item-container:not(.hidden)`).length;
+      const itensVisiveis = document.querySelectorAll(`[data-section="${secao}"] .item-container:not(.hidden):not(.filtered-out)`).length;
+      const marcadosVisiveis = document.querySelectorAll(`[data-section="${secao}"] .item-container:not(.hidden):not(.filtered-out) .checklist-item:checked`).length;
+
+      const countElement = document.getElementById(`${secao}-count`);
+      if (countElement) {
+        countElement.textContent = marcadosVisiveis + '/' + itensVisiveis;
+      }
+    });
+  }
+
+  // Inicializar funcionalidades de busca e filtro
+  function inicializarBuscaFiltro() {
+    // Event listener para busca
+    const searchInput = document.getElementById('item-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', filtrarItens);
+    }
+
+    // Event listener para limpar busca
+    const clearSearchBtn = document.getElementById('clear-search');
+    if (clearSearchBtn) {
+      clearSearchBtn.addEventListener('click', function() {
+        document.getElementById('item-search').value = '';
+        filtrarItens();
+      });
+    }
+
+    // Event listeners para filtros de status
+    const statusFilters = document.querySelectorAll('input[name="filter-status"]');
+    statusFilters.forEach(filter => {
+      filter.addEventListener('change', filtrarItens);
+    });
+
+    // Event listeners para toggles de seção
+    const sectionToggles = document.querySelectorAll('.section-toggle');
+    sectionToggles.forEach(toggle => {
+      toggle.addEventListener('click', function() {
+        const targetSection = this.dataset.target;
+        const section = document.querySelector(`[data-section="${targetSection}"]`);
+        if (section) {
+          section.classList.toggle('collapsed');
+        }
+      });
+    });
+  }
+
+  // Inicializar
+  inicializarEventListeners();
+  inicializarBuscaFiltro();
+  atualizarProgresso();
+
+  // Aplicar dark mode automaticamente
+  aplicarDarkMode();
+
+  // Registrar Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/static/js/service-worker.js')
+        .then((registration) => {
+          console.log('[SW] Registered successfully:', registration.scope);
+        })
+        .catch((error) => {
+          console.log('[SW] Registration failed:', error);
+        });
+    });
+  }
+
+  console.log('[CHECKLIST] Inicialização completa');
+});
+
+// Função para aplicar dark mode
+function aplicarDarkMode() {
+  const mainContainer = document.getElementById('main-container');
+  if (mainContainer) {
+    mainContainer.classList.add('dark-mode');
+  }
+
+  // Aplicar dark mode ao body também
+  document.body.classList.add('dark-mode');
+
+  console.log('[DARK MODE] Tema escuro aplicado automaticamente');
+}
+
+// Função global para limpar seleção (para onclick)
+function limparSelecao() {
+  if (confirm('Tem certeza que deseja limpar todas as seleções?')) {
+    document.querySelectorAll('.checklist-item').forEach(cb => {
+      cb.checked = false;
+    });
+    document.querySelectorAll('input[name="comentarios[]"]').forEach(input => {
+      input.value = '';
+    });
+    // Disparar evento para atualizar progresso
+    document.querySelectorAll('.checklist-item').forEach(cb => {
+      cb.dispatchEvent(new Event('change'));
+    });
+  }
+}
+
+// ========== LAZY LOADING PARA IMAGENS ==========
+document.addEventListener('DOMContentLoaded', function() {
+  // Função para implementar lazy loading
+  function lazyLoadImages() {
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          const src = img.dataset.src;
+
+          if (src) {
+            // Criar nova imagem para preload
+            const newImg = new Image();
+            newImg.onload = function() {
+              img.src = src;
+              img.classList.add('loaded');
+              img.classList.remove('loading');
+            };
+            newImg.src = src;
+
+            // Adicionar classe de loading
+            img.classList.add('loading');
+
+            // Parar de observar esta imagem
+            observer.unobserve(img);
+          }
+        }
+      });
+    }, {
+      rootMargin: '50px 0px', // Começar a carregar 50px antes de entrar na viewport
+      threshold: 0.01
+    });
+
+    // Observar todas as imagens com data-src
+    const lazyImages = document.querySelectorAll('img[data-src]');
+    lazyImages.forEach(img => {
+      imageObserver.observe(img);
+    });
+  }
+
+  // Inicializar lazy loading
+  lazyLoadImages();
+});
+
+// ========== MELHORIAS DE PERFORMANCE ==========
+
+// Debounce para funções que são chamadas frequentemente
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Aplicar debounce à função de filtro para melhor performance
+const debouncedFiltrarItens = debounce(filtrarItens, 300);
+
+// ========== MELHORAR RESPONSIVIDADE DOS ITENS ==========
+document.addEventListener('DOMContentLoaded', function() {
+  // Função para ajustar responsividade dos itens do checklist
+  function ajustarResponsividadeItens() {
+    const itemContainers = document.querySelectorAll('.item-container');
+
+    itemContainers.forEach(container => {
+      // Remover classes antigas
+      container.classList.remove('col-md-6', 'col-lg-4');
+
+      // Adicionar classes responsivas melhoradas
+      container.classList.add('col-12', 'col-sm-6', 'col-md-6', 'col-lg-4');
+    });
+  }
+
+  // Ajustar responsividade no carregamento
+  ajustarResponsividadeItens();
+
+  // Também ajustar quando o tipo de veículo muda (pode recriar elementos)
+  const tipoSelect = document.getElementById('tipo-select');
+  if (tipoSelect) {
+    tipoSelect.addEventListener('change', function() {
+      // Pequeno delay para garantir que os elementos foram recriados
+      setTimeout(ajustarResponsividadeItens, 100);
+    });
+  }
+});
+</script>
+{% endblock %}

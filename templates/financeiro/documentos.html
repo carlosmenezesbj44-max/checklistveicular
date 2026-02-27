@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="alert alert-info">
+        <small>
+            <strong>DEBUG:</strong> Abra o console (F12) para ver os logs de carregamento de veículos.
+        </small>
+    </div>
+</div>
+
+<script>
+    // Debug: Testar conexão ao carregar a página
+    console.log('🔧 [PÁGINA CARREGADA] Testando conexão com API...');
+    
+    fetch('/api/veiculos/debug')
+        .then(r => r.json())
+        .then(d => {
+            console.log('📊 [DEBUG API] Total de veículos no banco:', d.total_veiculos);
+            console.log('📋 [DEBUG API] Primeiros veículos:', d.primeiros_5);
+            if (d.total_veiculos === 0) {
+                console.warn('⚠️ [AVISO] Nenhum veículo cadastrado no banco de dados!');
+            } else {
+                console.log('✅ [OK] Há veículos no banco');
+            }
+        })
+        .catch(e => console.error('❌ [ERRO] Falha ao testar API:', e));
+</script>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1>📄 Documentos Financeiros</h1>
+        </div>
+        <div class="col-md-6 text-right">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoDoc">
+                ➕ Registrar Documento
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabela de Documentos Vencendo -->
+    <div class="card shadow">
+        <div class="card-header bg-warning text-white">
+            <h5 class="mb-0">Documentos Vencendo (Próximos 90 dias)</h5>
+        </div>
+        <div class="card-body">
+            {% if documentos %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Veículo</th>
+                            <th>Tipo</th>
+                            <th>Data Vencimento</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documentos %}
+                        <tr>
+                            <td><strong>{{ doc.placa }}</strong></td>
+                            <td>{{ doc.categoria }}</td>
+                            <td>{{ doc.data_transacao }}</td>
+                            <td><span class="badge badge-info">R$ {{ "%.2f"|format(doc.valor) }}</span></td>
+                            <td>
+                                {% if doc.observacoes and 'pago' in doc.observacoes %}
+                                <span class="badge badge-success">Pago</span>
+                                {% else %}
+                                <span class="badge badge-danger">Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info">📋 Detalhes</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center">Nenhum documento vencendo</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Registrar Documento -->
+<div class="modal fade" id="modalNovoDoc" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Registrar Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoDoc">
+                    <div class="form-group">
+                         <label for="veiculoDoc">Veículo *</label>
+                         <div class="input-group">
+                             <select id="veiculoDoc" class="form-control" required>
+                                 <option value="">Carregando veículos...</option>
+                             </select>
+                             <button class="btn btn-outline-secondary" type="button" onclick="carregarVeiculos()" title="Recarregar lista">
+                                 <i class="bi bi-arrow-clockwise"></i>
+                             </button>
+                         </div>
+                     </div>
+
+                    <div class="form-group">
+                        <label for="tipoDoc">Tipo *</label>
+                        <select id="tipoDoc" class="form-control" required>
+                            <option value="">Selecione...</option>
+                            <option value="IPVA">IPVA</option>
+                            <option value="Seguro">Seguro</option>
+                            <option value="Licenciamento">Licenciamento</option>
+                            <option value="Vistoria">Vistoria</option>
+                            <option value="DPVAT">DPVAT</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="dataVencDoc">Data Vencimento *</label>
+                            <input type="date" id="dataVencDoc" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="valorDoc">Valor (R$) *</label>
+                            <input type="number" id="valorDoc" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="criarDocumento()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Carregar veículos ao abrir o modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalEl = document.getElementById('modalNovoDoc');
+        if (modalEl) {
+            // Carregar veículos quando o modal for aberto
+            modalEl.addEventListener('show.bs.modal', carregarVeiculos);
+        }
+        
+        // Tentar carregar veículos imediatamente se o modal existir
+        setTimeout(carregarVeiculos, 500);
+    });
+
+    function carregarVeiculos() {
+        const select = document.getElementById('veiculoDoc');
+        if (!select) {
+            console.error('❌ Select element not found');
+            return;
+        }
+        
+        console.log('🔄 [carregarVeiculos] Iniciando carregamento de veículos...');
+        select.innerHTML = '<option value="">Carregando...</option>';
+        select.disabled = true;
+        
+        console.log('🔄 [carregarVeiculos] Fazendo requisição para /api/veiculos/listar');
+        
+        fetch('/api/veiculos/listar', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('📡 [Response] Status:', response.status);
+                console.log('📡 [Response] Content-Type:', response.headers.get('content-type'));
+                
+                if (!response.ok) {
+                    console.error('❌ [Response] HTTP Error:', response.status, response.statusText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const text = response.text();
+                console.log('📡 [Response] Texto bruto (primeiro 200 chars):', text.then(t => {
+                    const preview = t.substring(0, 200);
+                    console.log('Text:', preview);
+                    return t;
+                }));
+                
+                return text.then(t => {
+                    try {
+                        return JSON.parse(t);
+                    } catch (e) {
+                        console.error('❌ [Parse] Erro ao fazer parsing JSON:', e);
+                        console.error('❌ [Parse] Texto recebido:', t);
+                        throw e;
+                    }
+                });
+            })
+            .then(data => {
+                console.log('📦 [Data] Dados recebidos:', data);
+                console.log('📊 [Data] Tipo:', typeof data);
+                console.log('📊 [Data] É array?:', Array.isArray(data));
+                
+                select.innerHTML = '<option value="">Selecione um veículo...</option>';
+                
+                // Tentar acessar dados como array direto ou dentro de propriedade 'veiculos'
+                let veiculos = Array.isArray(data) ? data : (data?.veiculos || []);
+                
+                console.log(`📈 [Array] Total de veículos: ${veiculos.length}`);
+                
+                if (Array.isArray(veiculos) && veiculos.length > 0) {
+                    veiculos.forEach((veiculo, index) => {
+                        console.log(`  [${index}] ID: ${veiculo.id}, Placa: ${veiculo.placa}, Modelo: ${veiculo.modelo}`);
+                        const option = document.createElement('option');
+                        option.value = veiculo.id;
+                        option.textContent = `${veiculo.placa || 'S/placa'} - ${veiculo.modelo || 'Modelo desconhecido'}`;
+                        select.appendChild(option);
+                    });
+                    console.log(`✅ ${veiculos.length} veículos carregados com sucesso`);
+                } else {
+                    console.warn('⚠️ Nenhum veículo encontrado');
+                    select.innerHTML = '<option value="">Nenhum veículo cadastrado</option>';
+                }
+                
+                select.disabled = false;
+            })
+            .catch(error => {
+                console.error('❌ [Erro] Erro ao carregar veículos:', error);
+                console.error('❌ [Erro] Stack:', error.stack);
+                console.error('❌ [Erro] Message:', error.message);
+                select.innerHTML = '<option value="">Erro ao carregar veículos</option>';
+                select.disabled = false;
+            });
+    }
+
+    function criarDocumento() {
+        const veiculo_id = document.getElementById('veiculoDoc').value;
+        const tipo = document.getElementById('tipoDoc').value;
+        const data_vencimento = document.getElementById('dataVencDoc').value;
+        const valor = document.getElementById('valorDoc').value;
+
+        // Validação
+        if (!veiculo_id || !tipo || !data_vencimento || !valor) {
+            alert('Por favor, preencha todos os campos obrigatórios');
+            return;
+        }
+
+        fetch('/api/financeiro/documento', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                veiculo_id: parseInt(veiculo_id),
+                tipo: tipo,
+                data_vencimento: data_vencimento,
+                valor: parseFloat(valor)
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Documento registrado com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro: ' + (data.erro || data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao registrar documento: ' + error.message);
+        });
+    }
+</script>
+{% endblock %}

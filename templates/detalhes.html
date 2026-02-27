@@ -1,0 +1,740 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="{{ url_for('static', filename='js/icons.js') }}"></script>
+<div class="container py-4 dark-mode">
+  
+  <div class="header-section mb-5">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <h1 class="display-6 fw-bold mb-2">Detalhes do Checklist</h1>
+        <p class="text-muted mb-0">Placa <span class="fw-600 text-dark">{{ reg.placa or '-' }}</span> • Data <span class="fw-600 text-dark">{{ reg.data or '-' }}</span></p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap justify-content-end">
+        <a href="{{ url_for('historico') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+        <a href="{{ url_for('pdf', veiculo_id=reg.id) }}" class="btn btn-outline-secondary">
+          <i class="bi bi-file-earmark-pdf"></i> PDF
+        </a>
+        <a href="{{ url_for('manutencoes_veiculo', veiculo_id=reg.id) }}" class="btn btn-gradient">
+          <i class="bi bi-tools"></i> Manutenções
+        </a>
+      </div>
+    </div>
+
+    {% set total_itens = reg.itens|length %}
+    {% set itens_ok = reg.itens|selectattr('status', 'equalto', 'OK')|list|length %}
+    {% set itens_danificados = reg.itens|selectattr('status', 'equalto', 'Danificado')|list|length %}
+    {% set itens_outros = total_itens - itens_ok - itens_danificados %}
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="summary-card bg-success-light">
+          <div class="summary-icon"><i class="bi bi-check-circle-fill"></i></div>
+          <div class="summary-content">
+            <div class="summary-value">{{ itens_ok }}</div>
+            <div class="summary-label">Itens OK</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="summary-card bg-danger-light">
+          <div class="summary-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+          <div class="summary-content">
+            <div class="summary-value">{{ itens_danificados }}</div>
+            <div class="summary-label">Danificados</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="summary-card bg-warning-light">
+          <div class="summary-icon"><i class="bi bi-question-circle-fill"></i></div>
+          <div class="summary-content">
+            <div class="summary-value">{{ itens_outros }}</div>
+            <div class="summary-label">Outros</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="performance-indicators-section">
+      <h4 class="mb-4"><i class="bi bi-speedometer2 me-2"></i>Indicadores de Performance</h4>
+      <div class="row g-3">
+        {% if indicadores.km_l.km_l %}
+        <div class="col-md-6 col-lg-3">
+          <div class="performance-card">
+            <div class="performance-icon"><i class="bi bi-droplet-fill"></i></div>
+            <div class="performance-content">
+              <div class="performance-label">Consumo Médio</div>
+              <div class="performance-value">{{ indicadores.km_l.km_l }} km/l</div>
+              <div class="performance-detail">{{ indicadores.km_l.km_rodados }} km / {{ indicadores.km_l.litros_consumidos }} l</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if indicadores.custo_km.custo_km %}
+        <div class="col-md-6 col-lg-3">
+          <div class="performance-card">
+            <div class="performance-icon"><i class="bi bi-currency-dollar"></i></div>
+            <div class="performance-content">
+              <div class="performance-label">Custo/KM</div>
+              <div class="performance-value">R$ {{ indicadores.custo_km.custo_km }}</div>
+              <div class="performance-detail">Total: R$ {{ indicadores.custo_km.custo_total }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if indicadores.tempo_manutencao.tempo_km %}
+        <div class="col-md-6 col-lg-3">
+          <div class="performance-card">
+            <div class="performance-icon"><i class="bi bi-wrench-adjustable-fill"></i></div>
+            <div class="performance-content">
+              <div class="performance-label">Intervalo Médio</div>
+              <div class="performance-value">{{ indicadores.tempo_manutencao.tempo_km }} km</div>
+              <div class="performance-detail">{{ indicadores.tempo_manutencao.tempo_dias }} dias</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if indicadores.taxa_danificacao.taxa_danificacao != None %}
+        <div class="col-md-6 col-lg-3">
+          <div class="performance-card performance-{{ indicadores.taxa_danificacao.status|lower }}">
+            <div class="performance-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="performance-content">
+              <div class="performance-label">Taxa de Danos</div>
+              <div class="performance-value">{{ indicadores.taxa_danificacao.taxa_danificacao }}%</div>
+              <div class="performance-detail">{{ indicadores.taxa_danificacao.status }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-5 shadow-sm">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações do Veículo</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="info-group">
+            <label class="info-label">Placa</label>
+            <div class="info-value">{{ reg.placa or '-' }}</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="info-group">
+            <label class="info-label">Modelo</label>
+            <div class="info-value">{{ reg.modelo or '-' }}</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="info-group">
+            <label class="info-label">Condutor</label>
+            <div class="info-value">{{ reg.condutor or '-' }}</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="info-group">
+            <label class="info-label">Quilometragem</label>
+            <div class="info-value">{{ reg.quilometragem or '-' }} km</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="info-group">
+            <label class="info-label">Data do Checklist</label>
+            <div class="info-value">{{ reg.data or '-' }}</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="info-group">
+            <label class="info-label">Tipo</label>
+            <span class="badge bg-info fs-6">{{ reg.tipo }}</span>
+          </div>
+        </div>
+
+        {% if reg.observacoes %}
+        <div class="col-12">
+          <div class="info-group">
+            <label class="info-label">Observações</label>
+            <div class="info-value">{{ reg.observacoes }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      {# Alerta de troca de óleo #}
+      {% if reg.oleo_km or reg.oleo_data %}
+        <div class="mt-4 pt-4 border-top">
+          {% if reg.oleo_alert %}
+            <div class="alert alert-danger mb-0">
+              <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-exclamation-circle-fill flex-shrink-0 mt-1"></i>
+                <div>
+                  <strong>Alerta: Troca de Óleo Necessária</strong>
+                  <p class="mb-0 mt-2 small">O veículo possui <strong>{{ reg.quilometragem or '-' }} km</strong>. Última troca registrada em <strong>{{ reg.oleo_km or '-' }} km</strong> ({{ reg.oleo_data or '-' }}). Já passaram <strong>{{ reg.oleo_diff or 'N/A' }} km</strong> — recomenda-se realizar a troca de óleo.</p>
+                </div>
+              </div>
+            </div>
+          {% elif reg.oleo_due_in is not none %}
+            <div class="alert alert-warning mb-0">
+              <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+                <div>
+                  <strong>Próxima Troca de Óleo</strong>
+                  <p class="mb-0 mt-2 small">Próxima troca em <strong>{{ reg.oleo_due_in }} km</strong> (Última: {{ reg.oleo_km or '-' }} km em {{ reg.oleo_data or '-' }})</p>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if reg.foto_carro or reg.foto_clrv or reg.foto_cnh %}
+  <div class="card mb-5 shadow-sm">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="bi bi-image me-2"></i>Documentos e Fotos</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-4">
+        {% if reg.foto_carro %}
+        <div class="col-lg-6">
+          <div class="document-image-container">
+            <div class="document-label">Foto do Veículo</div>
+            <img src="{{ url_for('uploads', filename=reg.foto_carro) }}" class="img-fluid rounded" alt="Foto do veículo">
+          </div>
+        </div>
+        {% endif %}
+        {% if reg.foto_clrv %}
+        <div class="col-lg-6">
+          <div class="document-image-container">
+            <div class="document-label">CLRV - Certificado de Registro do Veículo</div>
+            <img src="{{ url_for('uploads', filename=reg.foto_clrv) }}" class="img-fluid rounded" alt="CLRV">
+          </div>
+        </div>
+        {% endif %}
+        {% if reg.foto_cnh %}
+        <div class="col-lg-6">
+          <div class="document-image-container">
+            <div class="document-label">CNH - Carteira Nacional de Habilitação</div>
+            <img src="{{ url_for('uploads', filename=reg.foto_cnh) }}" class="img-fluid rounded" alt="CNH">
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div>
+    <div class="d-flex align-items-center mb-4">
+      <h3 class="mb-0"><i class="bi bi-list-check me-2"></i>Itens do Checklist</h3>
+      <span class="badge bg-secondary ms-2">{{ total_itens }} itens</span>
+    </div>
+
+    {% if reg.itens %}
+    <div class="row g-3">
+      {% for it in reg.itens %}
+      <div class="col-12 col-sm-6 col-md-6 col-lg-4">
+        <div class="item-card-detailed">
+          <div class="item-card-header">
+            <div class="d-flex align-items-center gap-3">
+              <div class="item-icon-container">
+                <i class="bi item-icon-display" data-item="{{ it.nome_item }}"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h6 class="mb-0">{{ it.nome_item }}</h6>
+              </div>
+            </div>
+            <div class="item-status">
+              {% if it.status == 'OK' %}
+                <span class="badge bg-success-badge">
+                  <i class="bi bi-check-circle me-1"></i>{{ it.status }}
+                </span>
+              {% elif it.status == 'Danificado' %}
+                <span class="badge bg-danger-badge">
+                  <i class="bi bi-x-circle me-1"></i>{{ it.status }}
+                </span>
+              {% else %}
+                <span class="badge bg-warning-badge">
+                  <i class="bi bi-question-circle me-1"></i>{{ it.status }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if it.comentario %}
+          <div class="item-comment">
+            <p class="mb-0">{{ it.comentario }}</p>
+          </div>
+          {% endif %}
+
+          {% if it.caminho_thumb or it.caminho_foto %}
+          <div class="item-image">
+            {% if it.caminho_thumb %}
+              <img src="{{ url_for('uploads', filename=it.caminho_thumb) }}" alt="Foto do item">
+            {% else %}
+              <img src="{{ url_for('uploads', filename=it.caminho_foto) }}" alt="Foto do item">
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>Nenhum item registrado neste checklist.
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<style>
+  /* Dark Mode Styles for detalhes.html */
+  .dark-mode {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  .dark-mode .card {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .card-header {
+    background: #0f172a !important;
+    border-bottom-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .text-muted {
+    color: #94a3b8 !important;
+  }
+
+  .dark-mode .text-dark {
+    color: #e2e8f0 !important;
+  }
+
+  .dark-mode .info-value {
+    color: #cbd5e1;
+  }
+
+  .dark-mode .info-label {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .badge {
+    background: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .bg-success-light {
+    background: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+
+  .dark-mode .bg-danger-light {
+    background: rgba(220, 53, 69, 0.1) !important;
+    border-color: rgba(220, 53, 69, 0.2);
+  }
+
+  .dark-mode .bg-warning-light {
+    background: rgba(255, 193, 7, 0.1) !important;
+    border-color: rgba(255, 193, 7, 0.2);
+  }
+
+  .dark-mode .performance-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .dark-mode .performance-label {
+    color: #94a3b8;
+  }
+
+  .dark-mode .performance-value {
+    color: #10b981;
+  }
+
+  .dark-mode .performance-detail {
+    color: #cbd5e1;
+  }
+
+  .dark-mode .item-card-detailed {
+    background: #0f172a !important;
+    border: 1px solid #334155 !important;
+  }
+
+  .dark-mode .item-card-header h6 {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .item-comment {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .alert {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .alert-danger {
+    background: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.2);
+    color: #ef4444;
+  }
+
+  .dark-mode .alert-warning {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.2);
+    color: #f59e0b;
+  }
+
+  .dark-mode .btn-outline-secondary {
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+
+  .dark-mode .btn-outline-secondary:hover {
+    background: #334155;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .btn-gradient {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+  }
+
+  .dark-mode .btn-gradient:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+  }
+
+  .dark-mode .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .dark-mode .border-top {
+    border-top-color: #334155 !important;
+  }
+
+  .dark-mode .document-image-container {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .dark-mode .document-label {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .bg-success-badge {
+    background: #10b981 !important;
+    color: white;
+  }
+
+  .dark-mode .bg-danger-badge {
+    background: #ef4444 !important;
+    color: white;
+  }
+
+  .dark-mode .bg-warning-badge {
+    background: #f59e0b !important;
+    color: white;
+  }
+
+  .dark-mode .bg-info {
+    background: #06b6d4 !important;
+    color: white;
+  }
+
+  .dark-mode .display-6 {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .fw-bold {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .fw-600 {
+    color: #e2e8f0;
+  }
+
+  .dark-mode h3 {
+    color: #e2e8f0;
+  }
+
+  .dark-mode h5 {
+    color: #e2e8f0;
+  }
+
+  .dark-mode h6 {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .bi {
+    color: #cbd5e1;
+  }
+
+  .dark-mode .item-icon-display {
+    color: #10b981 !important;
+  }
+
+  .dark-mode .item-icon-container {
+    background: #334155;
+    border-color: #475569;
+  }
+
+  .dark-mode .text-success {
+    color: #10b981 !important;
+  }
+
+  .dark-mode .text-danger {
+    color: #ef4444 !important;
+  }
+
+  .dark-mode .text-warning {
+    color: #f59e0b !important;
+  }
+
+  .dark-mode .text-info {
+    color: #06b6d4 !important;
+  }
+
+  /* Performance card specific dark mode */
+  .dark-mode .performance-good {
+    border-left-color: #10b981;
+  }
+
+  .dark-mode .performance-average {
+    border-left-color: #f59e0b;
+  }
+
+  .dark-mode .performance-poor {
+    border-left-color: #ef4444;
+  }
+
+  /* Item card detailed dark mode */
+  .dark-mode .item-card-detailed {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .dark-mode .item-card-detailed:hover {
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+
+  .dark-mode .item-card-header {
+    border-bottom: 1px solid #334155;
+    padding: 1rem;
+  }
+
+  .dark-mode .item-comment {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: 0.5rem 1rem;
+  }
+
+  .dark-mode .item-image {
+    padding: 0.5rem 1rem 1rem 1rem;
+  }
+
+  .dark-mode .item-image img {
+    border-radius: 8px;
+    border: 1px solid #334155;
+  }
+
+  /* Summary cards dark mode */
+  .dark-mode .summary-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .dark-mode .summary-card:hover {
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+
+  .dark-mode .summary-icon {
+    font-size: 2rem;
+    opacity: 0.8;
+  }
+
+  .dark-mode .summary-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #10b981;
+  }
+
+  .dark-mode .summary-label {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Performance indicators dark mode */
+  .dark-mode .performance-indicators-section {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .dark-mode .performance-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .dark-mode .performance-card:hover {
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+
+  .dark-mode .performance-icon {
+    font-size: 2rem;
+    color: #10b981;
+    opacity: 0.8;
+  }
+
+  .dark-mode .performance-content {
+    flex: 1;
+  }
+
+  /* Info groups dark mode */
+  .dark-mode .info-group {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .dark-mode .info-group .info-label {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .dark-mode .info-group .info-value {
+    color: #e2e8f0;
+    font-weight: 500;
+  }
+
+  /* Document image container dark mode */
+  .dark-mode .document-image-container {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .dark-mode .document-image-container img {
+    border-radius: 8px;
+    border: 1px solid #334155;
+    margin-top: 0.5rem;
+  }
+
+  .dark-mode .document-label {
+    color: #e2e8f0;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Header section dark mode */
+  .dark-mode .header-section {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 2rem;
+  }
+
+  /* Alert dark mode overrides */
+  .dark-mode .alert-info {
+    background: rgba(6, 182, 212, 0.1);
+    border-color: rgba(6, 182, 212, 0.2);
+    color: #06b6d4;
+  }
+
+  /* Badge dark mode overrides */
+  .dark-mode .badge.bg-secondary {
+    background: #334155 !important;
+    color: #e2e8f0;
+  }
+
+  /* Ensure all text is visible in dark mode */
+  .dark-mode * {
+    color: inherit;
+  }
+
+  .dark-mode .text-white {
+    color: #e2e8f0 !important;
+  }
+
+  .dark-mode .text-light {
+    color: #cbd5e1 !important;
+  }
+
+  .dark-mode .item-card-detailed h6 {
+    color: #ffffff !important;
+  }
+
+  .item-icon-container {
+    background: #1e293b;
+    border: 1px solid #334155;
+  }
+
+  /* Ensure all cards have dark background */
+  .dark-mode .summary-card,
+  .dark-mode .performance-card,
+  .dark-mode .card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+  }
+
+  .dark-mode .card-header {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+  }
+</style>
+
+<script>
+  document.querySelectorAll('.item-icon-display').forEach(elem => {
+    const itemName = elem.getAttribute('data-item');
+    const icon = getIconForItem(itemName);
+    elem.classList.add(icon);
+  });
+</script>
+{% endblock %}

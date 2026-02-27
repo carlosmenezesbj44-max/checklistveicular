@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <!-- Header -->
+      <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center mb-3">
+          <div class="kpi-icon bg-soft-primary text-primary me-3">
+            <i class="bi bi-person-plus"></i>
+          </div>
+          <div>
+            <h1 class="h3 fw-bold mb-1">Novo Usuário</h1>
+            <p class="text-muted">Cadastrar novo usuário no sistema</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="card shadow-lg border-0">
+        <div class="card-body p-4 p-lg-5">
+          <form method="POST" action="{{ url_for('auth.register') }}" enctype="multipart/form-data">
+            <div class="mb-4">
+              <label for="username" class="form-label fw-semibold">
+                <i class="bi bi-person me-2"></i>Nome de Usuário
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-0">
+                  <i class="bi bi-person text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" id="username" name="username"
+                       required placeholder="Digite o nome de usuário">
+              </div>
+              <div class="form-text mt-2">
+                <i class="bi bi-info-circle me-1"></i>
+                Escolha um nome de usuário único e fácil de lembrar.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="email" class="form-label fw-semibold">
+                <i class="bi bi-envelope me-2"></i>E-mail
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-0">
+                  <i class="bi bi-envelope text-muted"></i>
+                </span>
+                <input type="email" class="form-control border-start-0" id="email" name="email"
+                       placeholder="usuario@exemplo.com">
+              </div>
+              <div class="form-text mt-2">
+                <i class="bi bi-info-circle me-1"></i>
+                O e-mail é opcional e será usado para recuperação de senha.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="password" class="form-label fw-semibold">
+                <i class="bi bi-lock me-2"></i>Senha
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-0">
+                  <i class="bi bi-lock text-muted"></i>
+                </span>
+                <input type="password" class="form-control border-start-0" id="password" name="password"
+                       required placeholder="Digite uma senha segura">
+                <button class="btn btn-outline-secondary border-start-0" type="button" id="togglePassword">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="form-text mt-2">
+                <i class="bi bi-shield-check me-1"></i>
+                A senha deve ter pelo menos 6 caracteres.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="confirm_password" class="form-label fw-semibold">
+                <i class="bi bi-lock-fill me-2"></i>Confirmar Senha
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-0">
+                  <i class="bi bi-lock-fill text-muted"></i>
+                </span>
+                <input type="password" class="form-control border-start-0" id="confirm_password" name="confirm_password"
+                       required placeholder="Confirme a senha">
+                <button class="btn btn-outline-secondary border-start-0" type="button" id="toggleConfirmPassword">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="role" class="form-label fw-semibold">
+                <i class="bi bi-shield-check me-2"></i>Nível de Acesso
+              </label>
+              <select class="form-select" id="role" name="role" required>
+                <option value="usuario" selected>Usuário Normal</option>
+                <option value="admin">Administrador</option>
+              </select>
+              <div class="form-text mt-2">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Usuário Normal:</strong> Pode fazer cadastros de checklist e visualizar gráficos.
+                <br><strong>Administrador:</strong> Acesso total, pode gerenciar usuários, editar e deletar tudo.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="profile_photo" class="form-label fw-semibold">
+                <i class="bi bi-camera me-2"></i>Foto do Usuário
+              </label>
+              <div class="text-center">
+                <div class="photo-upload-container" id="photoPreview">
+                  <div class="photo-placeholder">
+                    <i class="bi bi-person-plus display-4"></i>
+                    <p class="mb-0 mt-2">Clique para adicionar foto</p>
+                  </div>
+                </div>
+                <input type="file" class="d-none" id="profile_photo" name="profile_photo" accept="image/*">
+                <button type="button" class="btn btn-outline-secondary mt-2" id="removePhoto" style="display: none;">
+                  <i class="bi bi-trash"></i> Remover foto
+                </button>
+              </div>
+              <div class="form-text mt-2">
+                <i class="bi bi-info-circle me-1"></i>
+                Adicione uma foto de perfil (tamanho 3x4 recomendado).
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-lg btn-gradient shadow">
+                <i class="bi bi-person-plus"></i>Cadastrar Usuário
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .card {
+    border-radius: 20px;
+  }
+
+  .input-group-text {
+    border-radius: 12px 0 0 12px;
+  }
+
+  .form-control {
+    border-radius: 0 12px 12px 0;
+  }
+
+  .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--primary-500);
+  }
+
+  .btn-gradient {
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    transition: all 0.3s ease;
+  }
+
+  .btn-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+    background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  }
+
+  .border-top {
+    border-color: #e2e8f0 !important;
+  }
+
+  .form-check-input:checked {
+    background-color: var(--primary-500);
+    border-color: var(--primary-500);
+  }
+
+  /* Estilos para modo escuro */
+  body.dark-mode .form-text {
+    color: #e2e8f0 !important;
+  }
+
+  body.dark-mode .form-text i {
+    color: #cbd5e1 !important;
+  }
+
+  /* Estilos para upload de foto */
+  .photo-upload-container {
+    width: 150px;
+    height: 200px;
+    margin: 0 auto;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  body.dark-mode .photo-upload-container {
+    border-color: #475569;
+  }
+
+  .photo-upload-container:hover {
+    border-color: var(--primary-500);
+    transform: scale(1.02);
+  }
+
+  .photo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748b;
+  }
+
+  body.dark-mode .photo-placeholder {
+    color: #94a3b8;
+  }
+
+  .photo-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .photo-placeholder p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+
+  .photo-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+
+  .photo-preview.show {
+    display: block;
+  }
+
+  .photo-placeholder.show {
+    display: none;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const togglePassword = document.getElementById('togglePassword');
+  const passwordInput = document.getElementById('password');
+  const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+  const confirmPasswordInput = document.getElementById('confirm_password');
+  const photoContainer = document.getElementById('photoPreview');
+  const photoInput = document.getElementById('profile_photo');
+  const removePhotoBtn = document.getElementById('removePhoto');
+
+  togglePassword.addEventListener('click', function() {
+    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+
+    const icon = this.querySelector('i');
+    icon.classList.toggle('bi-eye');
+    icon.classList.toggle('bi-eye-slash');
+  });
+
+  toggleConfirmPassword.addEventListener('click', function() {
+    const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    confirmPasswordInput.setAttribute('type', type);
+
+    const icon = this.querySelector('i');
+    icon.classList.toggle('bi-eye');
+    icon.classList.toggle('bi-eye-slash');
+  });
+
+  // Validação de senhas
+  const form = document.querySelector('form');
+  form.addEventListener('submit', function(e) {
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+
+    if (password !== confirmPassword) {
+      e.preventDefault();
+      alert('As senhas não coincidem. Por favor, verifique.');
+      return false;
+    }
+
+    if (password.length < 6) {
+      e.preventDefault();
+      alert('A senha deve ter pelo menos 6 caracteres.');
+      return false;
+    }
+  });
+
+  // Funcionalidade de upload de foto
+  photoContainer.addEventListener('click', function() {
+    photoInput.click();
+  });
+
+  photoInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          // Criar canvas para redimensionar para 3x4 (150x200px)
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          // Calcular proporção 3:4
+          let width = 150;
+          let height = 200;
+
+          const aspectRatio = img.width / img.height;
+          if (aspectRatio > 0.75) {
+            // Imagem mais larga que 3:4, ajustar largura
+            width = 150;
+            height = width / aspectRatio;
+          } else {
+            // Imagem mais alta que 3:4, ajustar altura
+            height = 200;
+            width = height * aspectRatio;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Desenhar imagem no canvas
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Converter para blob e mostrar preview
+          canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+
+            // Remover preview anterior
+            const existingPreview = photoContainer.querySelector('.photo-preview');
+            if (existingPreview) {
+              existingPreview.remove();
+            }
+
+            // Criar elemento de preview
+            const preview = document.createElement('img');
+            preview.src = url;
+            preview.className = 'photo-preview show';
+
+            // Ocultar placeholder
+            const placeholder = photoContainer.querySelector('.photo-placeholder');
+            if (placeholder) {
+              placeholder.classList.add('show');
+            }
+
+            photoContainer.appendChild(preview);
+            removePhotoBtn.style.display = 'inline-block';
+          }, 'image/jpeg', 0.85);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  removePhotoBtn.addEventListener('click', function() {
+    photoInput.value = '';
+    const preview = photoContainer.querySelector('.photo-preview');
+    if (preview) {
+      preview.remove();
+    }
+    const placeholder = photoContainer.querySelector('.photo-placeholder');
+    if (placeholder) {
+      placeholder.classList.remove('show');
+    }
+    removePhotoBtn.style.display = 'none';
+  });
+});
+</script>
+{% endblock %}

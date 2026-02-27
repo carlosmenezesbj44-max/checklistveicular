@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Buscar Documentos por Placa{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Buscar Documentos</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="row mb-5">
+        <div class="col-md-8 offset-md-2">
+            <h1 class="text-center mb-4">
+                <i class="bi bi-search"></i> Buscar Documentos por Placa
+            </h1>
+            
+            <!-- Formulário de Busca -->
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <form method="POST" action="{{ url_for('buscar_documentos_post') }}">
+                        <div class="input-group input-group-lg">
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="placa" 
+                                name="placa" 
+                                placeholder="Digite a placa (ex: ABC-1234)"
+                                autocomplete="off"
+                                required
+                                style="text-transform: uppercase; font-weight: bold; font-size: 1.3rem; letter-spacing: 0.2em;"
+                            >
+                            <button class="btn btn-primary btn-lg" type="submit">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            Insira a placa do veículo (com ou sem o hífen)
+                        </small>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Dicas -->
+            <div class="row mt-5">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-file-earmark-check"></i> Documentos</h5>
+                            <p class="card-text">Gerencie CNH, CRLV, Seguro, Revisão e outros documentos do veículo.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-bell-fill"></i> Alertas</h5>
+                            <p class="card-text">Receba notificações quando documentos estiverem próximos do vencimento.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Veículos Recentes -->
+            {% if veiculos_recentes %}
+            <div class="mt-5">
+                <h5 class="mb-3"><i class="bi bi-clock-history"></i> Acessos Recentes</h5>
+                <div class="list-group">
+                    {% for veiculo in veiculos_recentes %}
+                    <a href="{{ url_for('listar_documentos_placa', placa=veiculo.placa) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <strong>{{ veiculo.placa }}</strong>
+                            <small>{{ veiculo.modelo }}</small>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-formatar placa enquanto digita
+document.getElementById('placa').addEventListener('input', function(e) {
+    let valor = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    // Formatar para ABC-1234 ou ABC1D23
+    if (valor.length >= 4) {
+        if (valor.length <= 4) {
+            e.target.value = valor;
+        } else if (valor.match(/^[A-Z]{3}[0-9]{4}$/)) {
+            // Placa antiga: ABC-1234
+            e.target.value = valor.substring(0, 3) + '-' + valor.substring(3);
+        } else if (valor.match(/^[A-Z]{3}[0-9][A-Z][0-9]{2}$/)) {
+            // Placa Mercosul: ABC-1D23
+            e.target.value = valor.substring(0, 3) + '-' + valor.substring(3);
+        } else {
+            e.target.value = valor;
+        }
+    } else {
+        e.target.value = valor;
+    }
+});
+</script>
+{% endblock %}

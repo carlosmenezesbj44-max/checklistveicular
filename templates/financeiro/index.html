@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="mb-0">💰 Aba Financeira</h1>
+        </div>
+        <div class="col-md-6 text-right">
+            <select id="veiculo-select" class="form-control form-control-sm d-inline-block w-auto" onchange="carregarDados()">
+                <option value="">-- Selecione um veículo --</option>
+                {% for v in veiculos %}
+                <option value="{{ v.id }}" {% if v.id == veiculo_selecionado %}selected{% endif %}>
+                    {{ v.placa }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    {% if alertas %}
+    <div class="alert-container mb-3">
+        {% for alerta in alertas %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>{{ alerta.icone }} {{ alerta.titulo }}:</strong> {{ alerta.mensagem }}
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Cards de Resumo -->
+    {% if resumo %}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-danger text-white shadow">
+                <div class="card-body">
+                    <h5 class="card-title">⛽ Combustível</h5>
+                    <h2 class="mb-2">R$ {{ "%.2f"|format(resumo.combustivel.total) }}</h2>
+                    <small>{{ resumo.combustivel.qtd }} abastecimentos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow">
+                <div class="card-body">
+                    <h5 class="card-title">🔧 Manutenção</h5>
+                    <h2 class="mb-2">R$ {{ "%.2f"|format(resumo.manutencao.total) }}</h2>
+                    <small>{{ resumo.manutencao.qtd }} registros</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white shadow">
+                <div class="card-body">
+                    <h5 class="card-title">🚨 Multas</h5>
+                    <h2 class="mb-2">R$ {{ "%.2f"|format(resumo.multas.total) }}</h2>
+                    <small>{{ resumo.multas.qtd }} registradas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow">
+                <div class="card-body">
+                    <h5 class="card-title">📊 TOTAL</h5>
+                    <h2 class="mb-2">R$ {{ "%.2f"|format(resumo.total_geral) }}</h2>
+                    <small>Custo/KM: R$ {{ "%.4f"|format(custo_km) }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Abas de conteúdo -->
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" href="#resumo" data-toggle="tab" role="tab">📈 Resumo</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/financeiro/abastecimento" role="tab">⛽ Abastecimento</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/financeiro/manutencoes" role="tab">🔧 Manutenções</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/financeiro/multas" role="tab">🚨 Multas</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/financeiro/relatorios" role="tab">📋 Relatórios</a>
+        </li>
+    </ul>
+
+    <!-- Conteúdo das Abas -->
+    <div class="tab-content mt-4">
+        <div class="tab-pane fade show active" id="resumo" role="tabpanel">
+            
+            <!-- Linha 1: Gráficos Pizza e Consumo -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Distribuição de Custos</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if veiculo_selecionado %}
+                            <canvas id="chart-pizza"></canvas>
+                            {% else %}
+                            <p class="text-muted">Selecione um veículo para visualizar</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Consumo de Combustível</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if consumo_medio %}
+                            <div class="text-center mb-3">
+                                <h3 class="text-success">{{ consumo_medio }} km/l</h3>
+                                <small class="text-muted">Consumo médio</small>
+                            </div>
+                            <canvas id="chart-consumo"></canvas>
+                            {% else %}
+                            <p class="text-muted">Sem dados de consumo</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linha 2: Gráfico Linha de Gastos -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card shadow">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Gastos Mês a Mês (Últimos 12 Meses)</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if veiculo_selecionado %}
+                            <canvas id="chart-linha"></canvas>
+                            {% else %}
+                            <p class="text-muted">Selecione um veículo para visualizar</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linha 3: Comparativo entre Veículos -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card shadow">
+                        <div class="card-header bg-warning text-white">
+                            <h5 class="mb-0">Comparativo de Gastos Entre Veículos</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chart-barras" style="height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    const veiculoId = {{ veiculo_selecionado or 'null' }};
+    
+    function carregarDados() {
+        const veiculo = document.getElementById('veiculo-select').value;
+        if (veiculo) {
+            window.location.href = `/financeiro?veiculo=${veiculo}`;
+        }
+    }
+
+    function carregarGraficos() {
+        if (!veiculoId) return;
+
+        // Gráfico Pizza - Distribuição de Custos
+        fetch(`/api/financeiro/grafico-pizza/${veiculoId}`)
+            .then(r => r.json())
+            .then(data => {
+                const ctx = document.getElementById('chart-pizza');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+        // Gráfico Linha - Gastos Mensais
+        fetch(`/api/financeiro/grafico-linha/${veiculoId}`)
+            .then(r => r.json())
+            .then(data => {
+                const ctx = document.getElementById('chart-linha');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+        // Gráfico Consumo
+        fetch(`/api/financeiro/grafico-consumo/${veiculoId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data) {
+                    const ctx = document.getElementById('chart-consumo');
+                    if (ctx) {
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: data,
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: false
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+    }
+
+    // Carregar gráfico comparativo
+    fetch(`/api/financeiro/grafico-barras`)
+        .then(r => r.json())
+        .then(data => {
+            const ctx = document.getElementById('chart-barras');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+    // Carregar dados ao iniciar
+    document.addEventListener('DOMContentLoaded', carregarGraficos);
+</script>
+{% endblock %}

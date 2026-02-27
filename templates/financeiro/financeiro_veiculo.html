@@ -1,0 +1,996 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4" style="background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%); min-height: 100vh;">
+  <div class="row">
+    <div class="col-12">
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 fw-bold mb-1"><i class="bi bi-cash-coin"></i> Gestão Financeira de Veículos</h1>
+          <p class="text-muted mb-0">Controle de custos, despesas e notas fiscais por veículo</p>
+        </div>
+        <div>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+          </a>
+        </div>
+      </div>
+
+      <!-- BARRA DE BUSCA E FILTROS -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <form id="formBuscaVeiculo" method="GET" action="{{ url_for('financeiro_veiculo') }}">
+            <div class="row g-3">
+              <!-- Busca por Veículo -->
+              <div class="col-md-4">
+                <label class="form-label"><i class="bi bi-search"></i> Buscar Veículo</label>
+                <div class="position-relative">
+                  <input type="text" class="form-control" id="buscaVeiculo" placeholder="Placa, marca, modelo ou condutor..." 
+                         value="{{ busca_veiculo or '' }}" autocomplete="off" oninput="carregarVeiculosDropdown()">
+                  <div class="list-group position-absolute w-100 mt-1 shadow-sm" id="dropdownVeiculos" style="display:none; max-height:300px; overflow-y:auto; z-index:1000;">
+                  </div>
+                </div>
+                <small class="text-muted">Digite a placa, marca, modelo ou nome do condutor</small>
+              </div>
+
+              <!-- Filtro de Data Inicial -->
+              <div class="col-md-3">
+                <label class="form-label"><i class="bi bi-calendar"></i> Data Inicial</label>
+                <input type="date" class="form-control" id="dataInicio" name="data_inicio" 
+                       value="{{ data_inicio or '' }}">
+              </div>
+
+              <!-- Filtro de Data Final -->
+              <div class="col-md-3">
+                <label class="form-label"><i class="bi bi-calendar"></i> Data Final</label>
+                <input type="date" class="form-control" id="dataFim" name="data_fim" 
+                       value="{{ data_fim or '' }}">
+              </div>
+
+              <!-- Botões de Ação -->
+              <div class="col-md-2 d-flex align-items-end gap-2">
+                 <button type="button" class="btn btn-success flex-grow-1" onclick="buscarVeiculo()">
+                   <i class="bi bi-search"></i> Buscar
+                 </button>
+                 <button type="button" class="btn btn-outline-secondary" onclick="limparFiltros()">
+                   <i class="bi bi-arrow-clockwise"></i>
+                 </button>
+               </div>
+              </div>
+
+              <!-- Atalhos de Período -->
+            <div class="row mt-3">
+              <div class="col-12">
+                <small class="text-muted">Períodos rápidos:</small>
+                <div class="btn-group mt-2" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="setarPeriodo(30)">
+                    Últimos 30 dias
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="setarPeriodo(90)">
+                    Últimos 90 dias
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="setarPeriodo(365)">
+                    Último ano
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="setarPeriodo(0)">
+                    Todo o período
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {% if veiculo_selecionado %}
+      <!-- VEICULO SELECIONADO - PAINEL FINANCEIRO -->
+      <div class="row g-4 mb-4">
+        <!-- FOTO DO VEICULO E INFORMAÇÕES -->
+        <div class="col-lg-3">
+          <div class="card shadow-sm" style="border-radius: 12px; overflow: hidden; position: sticky; top: 20px;">
+            {% if veiculo_selecionado and veiculo_selecionado.foto_carro %}
+              <img src="{{ url_for('static', filename='uploads/' + veiculo_selecionado.foto_carro) }}" 
+                   alt="Foto do veículo" class="card-img-top" style="height: 250px; object-fit: cover;" 
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div style="height: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: none; align-items: center; justify-content: center;">
+                <i class="bi bi-car-front" style="font-size: 80px; color: white;"></i>
+              </div>
+            {% else %}
+              <div style="height: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-car-front" style="font-size: 80px; color: white;"></i>
+              </div>
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title fw-bold">{{ veiculo_selecionado.placa }}</h5>
+              <p class="mb-2">
+                <strong class="text-muted">Modelo:</strong><br>
+                {{ veiculo_selecionado.modelo }}
+              </p>
+              <p class="mb-2">
+                <strong class="text-muted">Condutor:</strong><br>
+                {{ veiculo_selecionado.condutor or 'N/A' }}
+              </p>
+              <p class="mb-0">
+                <strong class="text-muted">Tipo:</strong><br>
+                {{ veiculo_selecionado.tipo or 'N/A' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESUMO FINANCEIRO -->
+        <div class="col-lg-9">
+          <!-- KPIs Financeiros -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <div class="card shadow-sm" style="border-radius: 12px; border-left: 4px solid #0d6efd;">
+                <div class="card-body">
+                  <h6 class="text-muted mb-2"><i class="bi bi-graph-up"></i> Total de Despesas</h6>
+                  <h3 class="text-primary mb-0">R$ {{ "%.2f"|format(resumo_financeiro.total_despesas or 0) }}</h3>
+                  <small class="text-muted">Período: {{ data_inicio or 'Todo' }}</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card shadow-sm" style="border-radius: 12px; border-left: 4px solid #dc3545;">
+                <div class="card-body">
+                  <h6 class="text-muted mb-2"><i class="bi bi-tools"></i> Manutenção</h6>
+                  <h3 class="text-danger mb-0">R$ {{ "%.2f"|format(resumo_financeiro.manutencao or 0) }}</h3>
+                  <small class="text-muted">{{ resumo_financeiro.qty_manutencao or 0 }} registros</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card shadow-sm" style="border-radius: 12px; border-left: 4px solid #ffc107;">
+                <div class="card-body">
+                  <h6 class="text-muted mb-2"><i class="bi bi-fuel-pump"></i> Combustível</h6>
+                  <h3 class="text-warning mb-0">R$ {{ "%.2f"|format(resumo_financeiro.combustivel or 0) }}</h3>
+                  <small class="text-muted">{{ resumo_financeiro.qty_combustivel or 0 }} registros</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card shadow-sm" style="border-radius: 12px; border-left: 4px solid #28a745;">
+                <div class="card-body">
+                  <h6 class="text-muted mb-2"><i class="bi bi-receipt"></i> Outras Despesas</h6>
+                  <h3 class="text-success mb-0">R$ {{ "%.2f"|format(resumo_financeiro.outras or 0) }}</h3>
+                  <small class="text-muted">{{ resumo_financeiro.qty_outras or 0 }} registros</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalhes por Categoria -->
+          <div class="card shadow-sm" style="border-radius: 12px;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+               <h5 class="mb-0"><i class="bi bi-list-check"></i> Detalhamento de Categorias</h5>
+              {% if manutencoes_pendentes and veiculo_selecionado %}
+              <button type="button" class="btn btn-sm btn-success" onclick="abrirModalConcluirFinanceiro()" title="Concluir manutenção pendente">
+                <i class="bi bi-check-circle"></i> Concluir Manutenção
+              </button>
+              {% endif %}
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6 class="mb-3">Manutenção e Peças</h6>
+                  <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                    <table class="table table-sm">
+                      <thead style="background: #f8f9fa;">
+                        <tr>
+                          <th>Descrição</th>
+                          <th class="text-end">Peça</th>
+                          <th class="text-end">Mão de Obra</th>
+                          <th class="text-end">Total</th>
+                          <th class="text-center" style="width: 60px;">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% if detalhes_manutencao %}
+                          {% for item in detalhes_manutencao %}
+                          <tr>
+                            <td><small>{{ item.nome_peca }}</small></td>
+                            <td class="text-end"><small>R$ {{ "%.2f"|format(item.valor_peca) }}</small></td>
+                            <td class="text-end"><small>R$ {{ "%.2f"|format(item.mao_de_obra) }}</small></td>
+                            <td class="text-end"><small><strong>R$ {{ "%.2f"|format(item.valor_total) }}</strong></small></td>
+                            <td class="text-center">
+                              {% if item.status and item.status != 'concluida' %}
+                              <button class="btn btn-sm btn-outline-success" onclick="concluirManutencaoItem({{ item.id }}, '{{ item.nome_peca }}', {{ item.valor_total or 0 }})" title="Dar baixa nesta manutenção">
+                                <i class="bi bi-check"></i>
+                              </button>
+                              {% else %}
+                              <span class="badge bg-success" title="Já concluída">
+                                <i class="bi bi-check-circle"></i>
+                              </span>
+                              {% endif %}
+                            </td>
+                          </tr>
+                          {% endfor %}
+                        {% else %}
+                          <tr><td colspan="5" class="text-muted text-center"><small>Sem registros</small></td></tr>
+                        {% endif %}
+                      </tbody>
+                      <tfoot style="border-top: 2px solid #ddd;">
+                        <tr>
+                          <td><strong>Subtotal</strong></td>
+                          <td colspan="3" class="text-end"><strong>R$ {{ "%.2f"|format(resumo_financeiro.manutencao or 0) }}</strong></td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <h6 class="mb-3">Combustível</h6>
+                  <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                    <table class="table table-sm">
+                      <tbody>
+                        {% if detalhes_combustivel %}
+                          {% for item in detalhes_combustivel %}
+                          <tr>
+                            <td>{{ item.data_abastecimento }} - {{ item.quantidade_litros }} L</td>
+                            <td class="text-end"><strong>R$ {{ "%.2f"|format(item.valor_total) }}</strong></td>
+                          </tr>
+                          {% endfor %}
+                        {% else %}
+                          <tr><td colspan="2" class="text-muted text-center">Sem registros</td></tr>
+                        {% endif %}
+                      </tbody>
+                      <tfoot style="border-top: 2px solid #ddd;">
+                        <tr>
+                          <td><strong>Subtotal</strong></td>
+                          <td class="text-end"><strong>R$ {{ "%.2f"|format(resumo_financeiro.combustivel or 0) }}</strong></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSAÇÕES E NOTAS FISCAIS -->
+      <div class="row g-4">
+        <div class="col-12">
+          <div class="card shadow-sm" style="border-radius: 12px;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="bi bi-receipt"></i> Transações e Notas Fiscais</h5>
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalNovaTransacao">
+                  <i class="bi bi-plus-circle"></i> Nova Transação
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="imprimirRelatorio()">
+                  <i class="bi bi-printer"></i> Imprimir
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              {% if transacoes %}
+              <div class="table-responsive">
+                <table class="table table-hover" id="tabelaTransacoes">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Data</th>
+                      <th>Tipo</th>
+                      <th>Descrição</th>
+                      <th>Categoria</th>
+                      <th>Valor</th>
+                      <th>Nota Fiscal</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for trans in transacoes %}
+                    <tr>
+                      <td><strong>{{ trans.data_transacao }}</strong></td>
+                      <td>
+                        <span class="badge bg-primary">{{ trans.tipo }}</span>
+                      </td>
+                      <td>
+                        <small>{{ trans.descricao or '-' }}</small>
+                      </td>
+                      <td>
+                        <span class="badge bg-secondary">{{ trans.categoria or 'Geral' }}</span>
+                      </td>
+                      <td>
+                        <strong class="text-danger">R$ {{ "%.2f"|format(trans.valor) }}</strong>
+                      </td>
+                      <td>
+                        {% if trans.nota_fiscal %}
+                          <a href="{{ url_for('static', filename='uploads/' + trans.nota_fiscal) }}" 
+                             target="_blank" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-file-pdf"></i>
+                          </a>
+                        {% else %}
+                          <span class="text-muted">-</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-warning" onclick="editarTransacao({{ trans.id }})" title="Editar">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deletarTransacao({{ trans.id }})" title="Deletar">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                  <tfoot class="table-light">
+                    <tr>
+                      <td colspan="4" class="text-end"><strong>Total do Período:</strong></td>
+                      <td><strong class="text-danger">R$ {{ "%.2f"|format(total_transacoes or 0) }}</strong></td>
+                      <td colspan="2"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              {% else %}
+              <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Nenhuma transação encontrada</strong> - Nenhum registro de despesa para este veículo no período selecionado
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% else %}
+      <!-- MENSAGEM QUANDO NENHUM VEÍCULO SELECIONADO -->
+      <div class="row">
+        <div class="col-lg-6 offset-lg-3">
+          <div class="card shadow-sm text-center py-5">
+            <div class="card-body">
+              <i class="bi bi-car-front" style="font-size: 80px; color: #ccc; display: block; margin-bottom: 20px;"></i>
+              <h5 class="card-title">Selecione um Veículo</h5>
+              <p class="text-muted">Use a barra de busca acima para selecionar um veículo e visualizar suas despesas financeiras</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVA TRANSAÇÃO -->
+<div class="modal fade" id="modalNovaTransacao" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Registrar Nova Transação</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formTransacao" method="POST" action="/api/financeiro/veiculo/transacao" enctype="multipart/form-data">
+        <div class="modal-body">
+          <input type="hidden" id="veiculo_id" name="veiculo_id" value="{{ veiculo_selecionado.id if veiculo_selecionado else '' }}">
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Tipo de Transação *</label>
+              <select class="form-select" id="tipo" name="tipo" required>
+                <option>Selecione...</option>
+                <option>Manutenção</option>
+                <option>Combustível</option>
+                <option>Multa/Infração</option>
+                <option>Seguro</option>
+                <option>IPVA</option>
+                <option>Licenciamento</option>
+                <option>Outra</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Categoria</label>
+              <input type="text" class="form-control" id="categoria" name="categoria" placeholder="Ex: Peças, Mão de obra">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Data da Transação *</label>
+              <input type="date" class="form-control" id="data_transacao" name="data_transacao" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Valor *</label>
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                <input type="number" class="form-control" id="valor" name="valor" 
+                       placeholder="0.00" step="0.01" min="0" required>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Descrição</label>
+              <textarea class="form-control" id="descricao" name="descricao" rows="2" 
+                        placeholder="Detalhes da transação..."></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Observações</label>
+              <textarea class="form-control" id="observacoes" name="observacoes" rows="2" 
+                        placeholder="Anotações adicionais..."></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Nota Fiscal (PDF, JPG, PNG)</label>
+              <input type="file" class="form-control" id="nota_fiscal" name="nota_fiscal" 
+                     accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Registrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR TRANSAÇÃO -->
+<div class="modal fade" id="modalEditarTransacao" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Transação</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formEditarTransacao" method="POST" action="/api/financeiro/veiculo/transacao/editar" enctype="multipart/form-data">
+        <div class="modal-body">
+          <input type="hidden" id="transacao_id" name="transacao_id">
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Tipo de Transação *</label>
+              <select class="form-select" id="editTipo" name="tipo" required>
+                <option>Selecione...</option>
+                <option>Manutenção</option>
+                <option>Combustível</option>
+                <option>Multa/Infração</option>
+                <option>Seguro</option>
+                <option>IPVA</option>
+                <option>Licenciamento</option>
+                <option>Outra</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Categoria</label>
+              <input type="text" class="form-control" id="editCategoria" name="categoria">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Data da Transação *</label>
+              <input type="date" class="form-control" id="editData" name="data_transacao" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Valor *</label>
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                <input type="number" class="form-control" id="editValor" name="valor" 
+                       placeholder="0.00" step="0.01" min="0" required>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Descrição</label>
+              <textarea class="form-control" id="editDescricao" name="descricao" rows="2"></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Observações</label>
+              <textarea class="form-control" id="editObservacoes" name="observacoes" rows="2"></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Nota Fiscal (PDF, JPG, PNG)</label>
+              <input type="file" class="form-control" id="editNotaFiscal" name="nota_fiscal" 
+                     accept=".pdf,.jpg,.jpeg,.png">
+              <small id="notaFiscalAtual" class="text-muted"></small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Salvar Alterações
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONCLUIR MANUTENÇÃO (Gestão Financeira) -->
+<div class="modal fade" id="modalConcluirManutencaoFinanceiro" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="bi bi-check-circle"></i> Concluir Manutenção</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Deseja concluir a manutenção do veículo <strong id="veiculoPlacaFinanceiro"></strong>?</p>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i>
+          <strong>O que acontece ao concluir:</strong>
+          <ul class="mb-0 mt-2">
+            <li>A manutenção será marcada como <strong>Concluída</strong></li>
+            <li>O valor <strong>R$ <span id="valorManutenacaoFinanceiro">0,00</span></strong> será movido para o histórico</li>
+            <li>Os dados serão armazenados para futuras pesquisas</li>
+            <li>O valor será zerado do painel de custos</li>
+          </ul>
+        </div>
+        <div class="form-group mt-3">
+          <label class="form-label"><strong>Observações adicionais</strong></label>
+          <textarea class="form-control" id="observacoesConclusao" rows="3" placeholder="(opcional) Informações sobre a conclusão da manutenção..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="confirmarConclusaoFinanceiro()">
+          <i class="bi bi-check-lg"></i> Concluir Agora
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONCLUIR ITEM DE MANUTENÇÃO -->
+<div class="modal fade" id="modalConcluirItemManutencao" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="bi bi-check-circle"></i> Dar Baixa na Manutenção</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Deseja dar baixa na manutenção <strong id="nomePecaItem"></strong>?</p>
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle"></i>
+          <strong>Valor movido:</strong> R$ <span id="valorItemFinanceiro">0,00</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><strong>Observações (opcional)</strong></label>
+          <textarea class="form-control" id="observacoesItem" rows="3" placeholder="Informações sobre a conclusão..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="confirmarConclusaoItem()">
+          <i class="bi bi-check-lg"></i> Confirmar Baixa
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .table-light {
+    background-color: #f8f9fa;
+  }
+  
+  body.dark-mode .table {
+    color: #e2e8f0;
+    border-color: #334155;
+  }
+  
+  body.dark-mode .table-light {
+    background-color: #1e293b;
+    color: #e2e8f0;
+  }
+  
+  #tabelaTransacoes tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  @media print {
+    .btn, .modal, .card-header .btn-group, .d-flex.justify-content-between {
+      display: none !important;
+    }
+    
+    body {
+      background: white;
+    }
+    
+    .container-fluid {
+      background: white;
+    }
+  }
+</style>
+
+<script>
+  // Definir data atual por padrão
+  document.getElementById('data_transacao').valueAsDate = new Date();
+  
+  function buscarVeiculo() {
+    const busca = document.getElementById('buscaVeiculo').value.trim();
+    const dataInicio = document.getElementById('dataInicio').value;
+    const dataFim = document.getElementById('dataFim').value;
+    
+    if (!busca) {
+      alert('Por favor, digite algo para buscar');
+      return;
+    }
+    
+    let url = `{{ url_for('financeiro_veiculo') }}?busca=${encodeURIComponent(busca)}`;
+    if (dataInicio) url += `&data_inicio=${dataInicio}`;
+    if (dataFim) url += `&data_fim=${dataFim}`;
+    
+    window.location.href = url;
+  }
+
+  function limparFiltros() {
+    document.getElementById('buscaVeiculo').value = '';
+    document.getElementById('dataInicio').value = '';
+    document.getElementById('dataFim').value = '';
+    window.location.href = '{{ url_for("financeiro_veiculo") }}';
+  }
+  
+  function setarPeriodo(dias) {
+    const dataFim = new Date();
+    const dataInicio = new Date();
+    
+    if (dias > 0) {
+      dataInicio.setDate(dataFim.getDate() - dias);
+      document.getElementById('dataInicio').valueAsDate = dataInicio;
+      document.getElementById('dataFim').valueAsDate = dataFim;
+    } else {
+      document.getElementById('dataInicio').value = '';
+      document.getElementById('dataFim').value = '';
+    }
+  }
+
+  let veiculosCache = [];
+
+  // Carrega todos os veículos na inicialização
+  async function inicializarVeiculosDropdown() {
+    try {
+      const response = await fetch('/api/veiculos/listar');
+      const data = await response.json();
+      veiculosCache = data.veiculos || [];
+      console.log('Veículos carregados:', veiculosCache);
+    } catch (error) {
+      console.error('Erro ao carregar veículos:', error);
+    }
+  }
+
+  // Carrega veículos para dropdown de autocomplete
+  async function carregarVeiculosDropdown(forçarMostrar = false) {
+    const inputBusca = document.getElementById('buscaVeiculo').value.toLowerCase().trim();
+    const dropdown = document.getElementById('dropdownVeiculos');
+
+    if (veiculosCache.length === 0) {
+      await inicializarVeiculosDropdown();
+    }
+
+    let veiculosFiltrados;
+
+    if (inputBusca.length === 0 && !forçarMostrar) {
+      dropdown.style.display = 'none';
+      return;
+    }
+
+    // Se não há busca mas forçar mostrar, exibir todos
+    if (inputBusca.length === 0 && forçarMostrar) {
+      veiculosFiltrados = veiculosCache;
+    } else {
+      // Filtrar veículos que correspondem ao termo de busca
+      veiculosFiltrados = veiculosCache.filter(v =>
+        v.placa.toLowerCase().includes(inputBusca) ||
+        v.modelo.toLowerCase().includes(inputBusca) ||
+        (v.condutor && v.condutor.toLowerCase().includes(inputBusca)) ||
+        v.tipo.toLowerCase().includes(inputBusca)
+      );
+    }
+
+    // Limpar dropdown
+    dropdown.innerHTML = '';
+
+    if (veiculosFiltrados.length === 0) {
+      dropdown.innerHTML = '<div class="list-group-item text-muted text-center py-3"><small>Nenhum veículo encontrado</small></div>';
+      dropdown.style.display = 'block';
+      return;
+    }
+
+    // Adicionar opções ao dropdown
+    veiculosFiltrados.slice(0, 15).forEach(veiculo => {
+      const item = document.createElement('a');
+      item.href = '#';
+      item.className = 'list-group-item list-group-item-action py-2';
+      item.style.cursor = 'pointer';
+      item.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <strong>${veiculo.placa}</strong> - ${veiculo.modelo}
+            <br>
+            <small class="text-muted">
+              <i class="bi bi-person me-1"></i>${veiculo.condutor || 'Sem condutor'}
+              <span class="ms-2">
+                <span class="badge bg-secondary">${veiculo.tipo}</span>
+              </span>
+            </small>
+          </div>
+        </div>
+      `;
+      item.onmouseenter = () => item.style.backgroundColor = '#f0f0f0';
+      item.onmouseleave = () => item.style.backgroundColor = '';
+      item.onclick = (e) => {
+        e.preventDefault();
+        selecionarVeiculoDropdown(veiculo.placa);
+      };
+      dropdown.appendChild(item);
+    });
+
+    if (veiculosFiltrados.length > 15) {
+      const moreItem = document.createElement('div');
+      moreItem.className = 'list-group-item text-muted text-center py-2';
+      moreItem.innerHTML = `<small>+${veiculosFiltrados.length - 15} veículos</small>`;
+      dropdown.appendChild(moreItem);
+    }
+
+    dropdown.style.display = 'block';
+  }
+
+  function selecionarVeiculoDropdown(placa) {
+    document.getElementById('buscaVeiculo').value = placa;
+    document.getElementById('dropdownVeiculos').style.display = 'none';
+    buscarVeiculo();
+  }
+
+  // Evento ao focar no input
+  document.getElementById('buscaVeiculo').addEventListener('focus', function() {
+    carregarVeiculosDropdown(true);
+  });
+
+  // Evento ao digitar
+  document.getElementById('buscaVeiculo').addEventListener('input', function() {
+    carregarVeiculosDropdown(false);
+  });
+
+  // Fechar dropdown ao clicar fora
+  document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('dropdownVeiculos');
+    const inputBusca = document.getElementById('buscaVeiculo');
+    const container = document.querySelector('.position-relative');
+    
+    if (!container.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  // Inicializar veículos ao carregar a página
+  document.addEventListener('DOMContentLoaded', function() {
+    inicializarVeiculosDropdown();
+  });
+  
+  function editarTransacao(id) {
+    fetch(`/api/financeiro/veiculo/transacao/obter?id=${id}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          alert('Erro ao buscar transação');
+          return;
+        }
+        
+        document.getElementById('transacao_id').value = data.id;
+        document.getElementById('editTipo').value = data.tipo;
+        document.getElementById('editCategoria').value = data.categoria || '';
+        document.getElementById('editData').value = data.data_transacao;
+        document.getElementById('editValor').value = data.valor;
+        document.getElementById('editDescricao').value = data.descricao || '';
+        document.getElementById('editObservacoes').value = data.observacoes || '';
+        
+        if (data.nota_fiscal) {
+          document.getElementById('notaFiscalAtual').textContent = `Arquivo atual: ${data.nota_fiscal}`;
+        } else {
+          document.getElementById('notaFiscalAtual').textContent = '';
+        }
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarTransacao'));
+        modal.show();
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao buscar transação');
+      });
+  }
+  
+  function deletarTransacao(id) {
+    if (!confirm('Tem certeza que deseja deletar esta transação?')) {
+      return;
+    }
+    
+    fetch(`/api/financeiro/veiculo/transacao/deletar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ transacao_id: id })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Transação deletada com sucesso');
+        window.location.reload();
+      } else {
+        alert('Erro ao deletar transação: ' + (data.error || 'Desconhecido'));
+      }
+    })
+    .catch(error => {
+      console.error('Erro:', error);
+      alert('Erro ao deletar transação');
+    });
+  }
+  
+  function imprimirRelatorio() {
+    if ({{ 'true' if veiculo_selecionado else 'false' }}) {
+      window.print();
+    } else {
+      alert('Selecione um veículo primeiro');
+    }
+  }
+  
+  let manutencaoIdAtualFinanceiro = null;
+  let itemManutencaoAtual = null;
+  
+  function concluirManutencaoItem(manutencaoId, nomePeca, valorTotal) {
+    itemManutencaoAtual = manutencaoId;
+    document.getElementById('nomePecaItem').textContent = nomePeca;
+    document.getElementById('valorItemFinanceiro').textContent = parseFloat(valorTotal).toFixed(2);
+    document.getElementById('observacoesItem').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalConcluirItemManutencao'));
+    modal.show();
+  }
+  
+  function confirmarConclusaoItem() {
+    const manutencaoId = itemManutencaoAtual;
+    const observacoes = document.getElementById('observacoesItem').value.trim();
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalConcluirItemManutencao'));
+    modal.hide();
+    
+    fetch(`/api/manutencao/${manutencaoId}/concluir`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        observacoes: observacoes,
+        origem: 'financeiro'
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.innerHTML = `
+          <div class="toast show" role="alert">
+            <div class="toast-header bg-success text-white">
+              <i class="bi bi-check-circle"></i>
+              <strong class="ms-2">Sucesso!</strong>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+              ${data.message}
+            </div>
+          </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        alert('Erro: ' + (data.error || 'Erro ao concluir manutenção'));
+      }
+    })
+    .catch(error => {
+      console.error('Erro:', error);
+      alert('Erro ao concluir manutenção');
+    });
+  }
+  
+  function abrirModalConcluirFinanceiro() {
+    const veiculoId = {{ veiculo_selecionado.id if veiculo_selecionado else 'null' }};
+    if (!veiculoId) {
+      alert('Selecione um veículo primeiro');
+      return;
+    }
+    
+    // Buscar total de manutenção pendente
+    fetch(`/api/financeiro/veiculo/${veiculoId}/manutencao-pendente`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('veiculoPlacaFinanceiro').textContent = data.placa || '{{ veiculo_selecionado.placa }}';
+          document.getElementById('valorManutenacaoFinanceiro').textContent = parseFloat(data.valor_total || 0).toFixed(2);
+          document.getElementById('observacoesConclusao').value = '';
+          
+          const modal = new bootstrap.Modal(document.getElementById('modalConcluirManutencaoFinanceiro'));
+          modal.show();
+        } else {
+          alert('Nenhuma manutenção pendente para este veículo');
+        }
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao buscar dados da manutenção');
+      });
+  }
+  
+  function confirmarConclusaoFinanceiro() {
+    const veiculoId = {{ veiculo_selecionado.id if veiculo_selecionado else 'null' }};
+    const observacoes = document.getElementById('observacoesConclusao').value.trim();
+    
+    if (!veiculoId) {
+      alert('Veículo não encontrado');
+      return;
+    }
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalConcluirManutencaoFinanceiro'));
+    modal.hide();
+    
+    fetch(`/api/financeiro/veiculo/${veiculoId}/concluir-todas-manutencoes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        observacoes: observacoes
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.innerHTML = `
+          <div class="toast show" role="alert">
+            <div class="toast-header bg-success text-white">
+              <i class="bi bi-check-circle"></i>
+              <strong class="ms-2">Sucesso!</strong>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+              ${data.message}
+            </div>
+          </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        alert('Erro: ' + (data.error || 'Erro ao concluir manutenções'));
+      }
+    })
+    .catch(error => {
+      console.error('Erro:', error);
+      alert('Erro ao concluir manutenções');
+    });
+  }
+  
+  // Notificação toast
+  const style = document.createElement('style');
+  style.textContent = `
+    .toast-notification {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      max-width: 400px;
+    }
+  `;
+  document.head.appendChild(style);
+</script>
+{% endblock %}

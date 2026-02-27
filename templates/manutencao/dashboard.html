@@ -1,0 +1,1907 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-wrapper" style="background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%); padding: 30px 0;">
+  <div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h1 class="h3 fw-bold" style="color: #e0e0e0;">Centro de Inteligência - Manutenção</h1>
+            <p class="text-muted" style="color: #9ca3af;">Gestão completa de manutenções, custos e alertas da frota</p>
+          </div>
+          <div class="header-actions" style="display: flex; gap: 10px;">
+            <a href="{{ url_for('nova_manutencao', veiculo_id=0) }}" class="btn btn-primary" style="display: none;">
+              <i class="bi bi-plus-circle"></i> Nova Manutenção
+            </a>
+            <a href="{{ url_for('inteligencia_dados') }}" class="btn btn-info">
+              <i class="bi bi-brain"></i> IA & Previsões
+            </a>
+            <a href="{{ url_for('indicadores_avancados') }}" class="btn btn-warning">
+              <i class="bi bi-graph-up"></i> Indicadores Avançados
+            </a>
+            <a href="{{ url_for('financeiro_veiculo') }}" class="btn btn-success">
+              <i class="bi bi-cash-coin"></i> Financeiro
+            </a>
+            <button class="btn btn-outline-secondary" onclick="exportarRelatorio()">
+              <i class="bi bi-file-pdf"></i> Exportar PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. KPIs RESUMO -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card shadow-sm" style="border-radius: 12px; overflow: hidden;">
+          <div class="card-body">
+            <h6 class="text-muted">Total de Manutenções</h6>
+            <h3 class="text-primary" id="kpiTotal">{{ total_manutencoes }}</h3>
+            <small class="text-success">Registros acumulados</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card shadow-sm" style="border-radius: 12px; overflow: hidden;">
+          <div class="card-body">
+            <h6 class="text-muted">Custo Total (Este Mês)</h6>
+            <h3 class="text-danger" id="kpiCusto">R$ {{ "%.2f"|format(custo_mes) }}</h3>
+            <small class="text-muted">Peças + Mão de obra</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card shadow-sm" style="border-radius: 12px; overflow: hidden;">
+          <div class="card-body">
+            <h6 class="text-muted">Manutenções Este Mês</h6>
+            <h3 class="text-warning" id="kpiMes">0</h3>
+            <small class="text-muted">Registros do mês</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card shadow-sm" style="border-radius: 12px; overflow: hidden;">
+          <div class="card-body">
+            <h6 class="text-muted">Veículos Monitorados</h6>
+            <h3 class="text-info" id="kpiVeiculos">{{ veiculos_monitorados }}</h3>
+            <small class="text-muted">Frota ativa</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1.5. INDICADORES AVANÇADOS - RESUMO -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="bi bi-graph-up"></i> Indicadores Avançados - Top Performance</h5>
+              <a href="{{ url_for('indicadores_avancados') }}" class="btn btn-sm btn-light">
+                <i class="bi bi-arrow-right"></i> Ver Detalhes
+              </a>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <!-- Top Veículos -->
+              <div class="col-lg-6">
+                <h6 class="fw-bold mb-3"><i class="bi bi-truck"></i> Top 3 Veículos - Melhor Consumo</h6>
+                <div id="topVeiculosContainer">
+                  <div class="text-center text-muted py-3">
+                    <i class="bi bi-hourglass-split"></i> Carregando...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Top Condutores -->
+              <div class="col-lg-6">
+                <h6 class="fw-bold mb-3"><i class="bi bi-people"></i> Top 3 Condutores - Melhor Eficiência</h6>
+                <div id="topCondutoresContainer">
+                  <div class="text-center text-muted py-3">
+                    <i class="bi bi-hourglass-split"></i> Carregando...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. SEÇÃO DE REGISTRO + CUSTOS (Lado a Lado) -->
+    <div class="row g-3 mb-4">
+      <!-- REGISTRO DE MANUTENÇÕES -->
+      <div class="col-lg-6">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-primary" style="border-radius: 12px 12px 0 0; color: #fff !important;">
+            <h5 class="mb-0" style="color: #fff !important;"><i class="bi bi-wrench"></i> Registro de Manutenção</h5>
+          </div>
+          <div class="card-body">
+            <form id="formManutencao">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Data da Manutenção *</label>
+                  <input type="date" class="form-control" id="dataManutencao" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Tipo de Manutenção *</label>
+                  <select class="form-select" id="tipoManutencao" required>
+                    <option>Selecione...</option>
+                    <option>Preventiva</option>
+                    <option>Corretiva</option>
+                    <option>Emergencial</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Veículo *</label>
+                  <div class="input-group">
+                    <select class="form-select" id="selectVeiculoManutencao" required>
+                      <option>Selecione...</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#buscarVeiculoModal" title="Buscar ou Cadastrar Veículo">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Quilometragem Atual *</label>
+                  <input type="number" class="form-control" id="quilometragemAtual" placeholder="45000" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Descrição do Serviço *</label>
+                <textarea class="form-control" id="descricaoServico" rows="3" placeholder="Ex: Troca de óleo, filtro e fluido de freio" required></textarea>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Responsável/Técnico *</label>
+                  <input type="text" class="form-control" id="tecnicoResponsavel" placeholder="Nome do técnico" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Gravidade</label>
+                  <select class="form-select" id="gravidade">
+                    <option>Leve</option>
+                    <option>Moderada</option>
+                    <option>Crítica</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Observações/Notas</label>
+                <textarea class="form-control" id="observacoes" rows="2" placeholder="Anotações adicionais..."></textarea>
+              </div>
+
+              <hr class="my-4">
+              <h6 class="mb-3"><i class="bi bi-image"></i> Fotos da Manutenção</h6>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Foto Antes</label>
+                  <div style="border: 2px dashed #0d6efd; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; background: #0f172a; transition: all 0.3s;" onclick="document.getElementById('fotoAntes').click();" ondragover="this.style.backgroundColor='rgba(13, 110, 253, 0.15)';" ondragleave="this.style.backgroundColor='#0f172a';" ondrop="document.getElementById('fotoAntes').files = event.dataTransfer.files; this.style.backgroundColor='#0f172a';">
+                    <i class="bi bi-image" style="font-size: 30px; color: #0d6efd;"></i>
+                    <p class="mt-2 mb-0"><small>Clique ou arraste uma imagem</small></p>
+                    <small id="nomeAntes" class="text-muted"></small>
+                  </div>
+                  <input type="file" id="fotoAntes" name="fotoAntes" accept="image/*" style="display: none;" onchange="document.getElementById('nomeAntes').textContent = this.files[0].name;">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Foto Depois</label>
+                  <div style="border: 2px dashed #28a745; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; background: #0f172a; transition: all 0.3s;" onclick="document.getElementById('fotoDepois').click();" ondragover="this.style.backgroundColor='rgba(40, 167, 69, 0.15)';" ondragleave="this.style.backgroundColor='#0f172a';" ondrop="document.getElementById('fotoDepois').files = event.dataTransfer.files; this.style.backgroundColor='#0f172a';">
+                    <i class="bi bi-image" style="font-size: 30px; color: #28a745;"></i>
+                    <p class="mt-2 mb-0"><small>Clique ou arraste uma imagem</small></p>
+                    <small id="nomeDepois" class="text-muted"></small>
+                  </div>
+                  <input type="file" id="fotoDepois" name="fotoDepois" accept="image/*" style="display: none;" onchange="document.getElementById('nomeDepois').textContent = this.files[0].name;">
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Comentário do Mecânico</label>
+                <textarea class="form-control" id="comentarioMecanico" rows="3" placeholder="Descreva detalhes do serviço, observações e recomendações..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-plus-circle"></i> Registrar Manutenção
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUSTOS E PEÇAS -->
+      <div class="col-lg-6">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-danger" style="border-radius: 12px 12px 0 0; color: #fff !important;">
+            <h5 class="mb-0" style="color: #fff !important;"><i class="bi bi-calculator"></i> Custos da Manutenção</h5>
+          </div>
+          <div class="card-body">
+            <!-- Peças -->
+            <div class="mb-4">
+              <h6 class="fw-bold mb-3">Peças Substituídas</h6>
+              <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-hover" style="font-size: 14px;">
+                  <thead style="position: sticky; top: 0; background: #0f172a;">
+                    <tr>
+                      <th style="width: 40%;">Peça</th>
+                      <th style="width: 15%;">Qtd</th>
+                      <th style="width: 20%;">Preço Un.</th>
+                      <th style="width: 15%;">Subtotal</th>
+                      <th style="width: 10%;">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabelaPecas">
+                    <tr style="background: #1a1a1a; color: #ffffff;">
+                       <td colspan="3" class="text-end fw-bold" style="color: #e0e0e0;">Subtotal Peças:</td>
+                       <td colspan="2"><strong id="subtotalPecas" style="color: #4fc3f7;">R$ 0,00</strong></td>
+                     </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary mt-3" onclick="adicionarPeca()">
+                <i class="bi bi-plus"></i> Adicionar Peça
+              </button>
+            </div>
+
+            <!-- Mão de Obra -->
+            <div class="mb-4">
+              <h6 class="fw-bold">Mão de Obra</h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                  <thead style="background: #0f172a;">
+                    <tr>
+                      <th>Descrição</th>
+                      <th>Valor (R$)</th>
+                      <th style="width: 50px;">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabelaMaoDeObra">
+                    <tr style="background: #0f172a;">
+                      <td class="text-end fw-bold">Subtotal Mão de Obra:</td>
+                      <td><strong id="subtotalMaoDeObra">R$ 0,00</strong></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="adicionarMaoDeObra()">
+                <i class="bi bi-plus"></i> Adicionar Mão de Obra
+              </button>
+            </div>
+
+            <!-- Resumo de Custos -->
+             <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 20px; border-radius: 12px; border: 2px solid #334155; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+               <div style="font-size: 14px; color: #cbd5e1; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                 <i class="bi bi-tag" style="font-size: 18px; color: #ffc107;"></i>
+                 <strong>Resumo de Custos</strong>
+               </div>
+               
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                 <div style="padding: 12px; background: rgba(255, 193, 7, 0.1); border-radius: 8px; border-left: 4px solid #ffc107;">
+                   <small style="color: #cbd5e1; font-size: 11px; text-transform: uppercase; font-weight: 600;">Peças</small>
+                   <div id="resumoPecas" style="font-size: 20px; font-weight: 900; color: #ffc107; margin-top: 4px;">R$ 0,00</div>
+                 </div>
+                 <div style="padding: 12px; background: rgba(220, 53, 69, 0.1); border-radius: 8px; border-left: 4px solid #dc3545;">
+                   <small style="color: #cbd5e1; font-size: 11px; text-transform: uppercase; font-weight: 600;">Mão de Obra</small>
+                   <div id="resumoMaoDeObra" style="font-size: 20px; font-weight: 900; color: #dc3545; margin-top: 4px;">R$ 0,00</div>
+                 </div>
+               </div>
+               
+               <div style="padding: 12px; background: rgba(13, 110, 253, 0.1); border-radius: 8px; border-left: 4px solid #0d6efd; border-top: 2px solid #0d6efd;">
+                 <small style="color: #cbd5e1; font-size: 11px; text-transform: uppercase; font-weight: 600;">Total</small>
+                 <div id="resumoTotal" style="font-size: 24px; font-weight: 900; color: #0d6efd; margin-top: 4px;">R$ 0,00</div>
+               </div>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2.5 CADASTRO DE CONDUTORES -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-info text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-person-plus"></i> Cadastrar Novo Condutor</h5>
+          </div>
+          <div class="card-body">
+            <form id="formNovoConductor">
+              <div class="row mb-3">
+                <div class="col-md-12">
+                  <label class="form-label">Nome Completo *</label>
+                  <input type="text" class="form-control" id="nomeCondutor" name="nome" placeholder="Digite o nome do condutor" required>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">CPF</label>
+                  <input type="text" class="form-control" id="cpfCondutor" name="cpf" placeholder="000.000.000-00">
+                  <div class="valid-feedback"></div>
+                  <div class="invalid-feedback"></div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">RG</label>
+                  <input type="text" class="form-control" id="rgCondutor" name="rg" placeholder="00.000.000-0">
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Telefone</label>
+                  <input type="text" class="form-control" id="telefoneCondutor" name="telefone" placeholder="(11) 99999-9999">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">E-mail</label>
+                  <input type="email" class="form-control" id="emailCondutor" name="email" placeholder="email@example.com">
+                  <div class="valid-feedback"></div>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Data de Nascimento</label>
+                <input type="date" class="form-control" id="dataNascimentoCondutor" name="data_nascimento">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Endereço</label>
+                <input type="text" class="form-control" id="enderecoCondutor" name="endereco" placeholder="Rua, número, complemento">
+              </div>
+
+              <button type="button" class="btn btn-info w-100" id="btnSalvarCondutor">
+                <i class="bi bi-plus-circle"></i> Cadastrar Condutor
+              </button>
+            </form>
+            <div id="mensagemCondutor" style="margin-top: 15px; display: none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-secondary text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Condutores Cadastrados</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <input type="text" class="form-control" id="buscaCondutor" placeholder="Buscar condutor pelo nome...">
+            </div>
+            <div id="listaCondutores" style="max-height: 400px; overflow-y: auto;">
+              <div class="text-center text-muted py-4">
+                <i class="bi bi-hourglass-split"></i> Carregando condutores...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. AGENDA E ALERTAS -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-4">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-warning text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-bell"></i> Alertas Ativos</h5>
+          </div>
+          <div class="card-body">
+            {% if alertas %}
+              {% for alerta in alertas %}
+                <div class="alert alert-{{ alerta.tipo }}" role="alert">
+                  <strong><i class="bi {{ alerta.icon }}"></i></strong> {{ alerta.mensagem }}
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="alert alert-success" role="alert">
+                <i class="bi bi-check-circle"></i> Todos os veículos estão em dia!
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-info text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Próximas Revisões</h5>
+          </div>
+          <div class="card-body">
+            {% if proximas_revisoes %}
+              {% for revisao in proximas_revisoes %}
+                <div {% if not loop.last %}style="padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px;"{% endif %}>
+                  <h6 class="mb-1">{{ revisao.placa }} ({{ revisao.modelo }})</h6>
+                  <small class="text-muted">Próxima: {{ revisao.proxima_km | int }} km | Atual: {{ revisao.km_atual | int }} km</small>
+                  <div class="progress mt-2" style="height: 8px;">
+                    {% if revisao.status == 'ATRASADA' %}
+                      <div class="progress-bar bg-danger" style="width: 100%"></div>
+                    {% elif revisao.percentual >= 90 %}
+                      <div class="progress-bar bg-warning" style="width: {{ revisao.percentual }}%"></div>
+                    {% else %}
+                      <div class="progress-bar bg-success" style="width: {{ revisao.percentual }}%"></div>
+                    {% endif %}
+                  </div>
+                  <small {% if revisao.status == 'ATRASADA' %}class="text-danger"{% else %}class="text-muted"{% endif %}>
+                    {% if revisao.status == 'ATRASADA' %}
+                      <i class="bi bi-exclamation-circle"></i> ATRASADA
+                    {% else %}
+                      {{ revisao.percentual | round(0) | int }}% do ciclo completo
+                    {% endif %}
+                  </small>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="text-muted text-center">Nenhuma revisão programada</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-success text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-clock-history"></i> Histórico Recente</h5>
+          </div>
+          <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+            <div id="historicoRecente"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. GRÁFICOS E INDICADORES -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-primary" style="border-radius: 12px 12px 0 0; color: #fff !important;">
+            <h5 class="mb-0" style="color: #fff !important;"><i class="bi bi-graph-up"></i> Manutenções por Mês</h5>
+          </div>
+          <div class="card-body">
+            <div style="height: 250px; background: transparent; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <canvas id="chartManutencoes"></canvas>
+            </div>
+          </div>
+          </div>
+          </div>
+
+          <div class="col-lg-6">
+          <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-danger" style="border-radius: 12px 12px 0 0; color: #fff !important;">
+            <h5 class="mb-0" style="color: #fff !important;"><i class="bi bi-pie-chart"></i> Problemas Mais Recorrentes</h5>
+          </div>
+          <div class="card-body">
+            <div style="height: 250px; background: transparent; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <canvas id="chartProblemas"></canvas>
+            </div>
+          </div>
+          </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-info text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Veículos com Mais Manutenções</h5>
+          </div>
+          <div class="card-body">
+            <div style="height: 250px; background: transparent; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <canvas id="chartVeiculos"></canvas>
+            </div>
+          </div>
+          </div>
+          </div>
+
+          <div class="col-lg-6">
+          <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-success text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-graph-up"></i> Evolução de Custos</h5>
+          </div>
+          <div class="card-body">
+            <div style="height: 250px; background: transparent; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <canvas id="chartCustos"></canvas>
+            </div>
+          </div>
+          </div>
+          </div>
+    </div>
+
+    <!-- 4.5 LISTAGEM COMPLETA DE VEÍCULOS COM MANUTENÇÃO -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-dark" style="border-radius: 12px 12px 0 0; color: #000;">
+            <h5 class="mb-0"><i class="bi bi-car-front-fill"></i> Veículos com Manutenção</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover table-striped" id="tabelaVeiculosManutencao">
+                <thead style="background: #0f172a; position: sticky; top: 0;">
+                  <tr>
+                    <th>Placa</th>
+                    <th>Modelo</th>
+                    <th>Tipo</th>
+                    <th>Condutor</th>
+                    <th>Total Manutenções</th>
+                    <th>Última Manutenção</th>
+                    <th>Custo Total</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="corpoTabelaVeiculos">
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                      <i class="bi bi-hourglass-split"></i> Carregando veículos...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. INTEGRAÇÃO COM CHECKLIST -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-secondary text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Itens Críticos do Checklist → Manutenção</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead style="background: #0f172a;">
+                  <tr>
+                    <th>Data Identificado</th>
+                    <th>Veículo</th>
+                    <th>Item Crítico</th>
+                    <th>Status</th>
+                    <th>Data Resolução</th>
+                    <th>Tempo Médio</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if itens_criticos %}
+                    {% for item in itens_criticos %}
+                      <tr>
+                        <td>{{ item.data_identificado or '-' }}</td>
+                        <td><strong>{{ item.placa }}</strong></td>
+                        <td>{{ item.nome_item }}</td>
+                        <td>
+                          {% if item.status == 'Resolvido' %}
+                            <span class="badge bg-success">{{ item.status }}</span>
+                          {% else %}
+                            <span class="badge bg-warning">{{ item.status }}</span>
+                          {% endif %}
+                        </td>
+                        <td>{{ item.data_resolucao or '-' }}</td>
+                        <td>{{ item.tempo_medio or '-' }}</td>
+                        <td>
+                          {% if item.status == 'Pendente' %}
+                            <button class="btn btn-sm btn-outline-primary" title="Adicionar manutenção"><i class="bi bi-plus-circle"></i></button>
+                          {% else %}
+                            <button class="btn btn-sm btn-outline-info" title="Visualizar"><i class="bi bi-eye"></i></button>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-check-circle" style="font-size: 24px; margin-bottom: 10px;"></i>
+                        <p>Nenhum item crítico identificado</p>
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. DOCUMENTAÇÃO -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-purple text-white" style="border-radius: 12px 12px 0 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-pdf"></i> Notas Fiscais e Comprovantes</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label"><strong>Selecionar Veículo *</strong></label>
+              <select class="form-select" id="selectVeiculoNotaFiscal" onchange="carregarNotasFiscaisVeiculo()">
+                <option value="">Escolha um veículo...</option>
+              </select>
+            </div>
+
+            <form id="uploadFormNotaFiscal" enctype="multipart/form-data" style="margin-bottom: 20px;">
+              <div id="dropZoneNotaFiscal" style="border: 2px dashed #667eea; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; background-color: #0f172a;" ondrop="handleDropNotaFiscal(event)" ondragover="handleDragOverNotaFiscal(event)" ondragleave="handleDragLeaveNotaFiscal(event)" onclick="document.getElementById('fileInputNotaFiscal').click();">
+                 <i class="bi bi-cloud-arrow-up" style="font-size: 40px; color: #667eea;"></i>
+                 <p class="mt-2 mb-0"><strong>Arraste arquivos aqui ou clique para selecionar</strong></p>
+                 <small class="text-muted">PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (Max 10MB)</small>
+               </div>
+              <input type="file" id="fileInputNotaFiscal" name="arquivo" style="display: none;" accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx" onchange="adicionarArquivoNotaFiscal(event)">
+              <div id="uploadProgressNotaFiscal" style="display: none; margin-top: 10px;">
+                <div class="progress">
+                  <div id="progressBarNotaFiscal" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                </div>
+                <small id="progressTextNotaFiscal" class="text-muted">Enviando...</small>
+              </div>
+            </form>
+
+            <div class="mt-3">
+              <h6>Notas Fiscais para Anexar:</h6>
+              <div id="listaArquivosNotaFiscal" class="list-group mb-3">
+                <p class="text-muted text-center py-3">Nenhum arquivo selecionado. Adicione um arquivo!</p>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary flex-grow-1" onclick="limparArquivosNotaFiscal()">
+                  <i class="bi bi-trash"></i> Limpar
+                </button>
+                <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="salvarNotasFiscaisVeiculo()" id="btnSalvarNotasFiscais" disabled>
+                  <i class="bi bi-check-circle"></i> Salvar
+                </button>
+              </div>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="mt-3">
+              <h6>Notas Fiscais do Veículo:</h6>
+              <div id="notasFiscaisVeiculo" class="list-group">
+                <p class="text-muted text-center py-3">Selecione um veículo para ver as notas fiscais</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-dark" style="border-radius: 12px 12px 0 0; color: #000;">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-excel"></i> Relatórios Exportáveis</h5>
+          </div>
+          <div class="card-body">
+            <div class="list-group">
+              <button type="button" class="list-group-item list-group-item-action" onclick="exportarRelatorioGeral()">
+                <i class="bi bi-file-pdf text-danger"></i> <strong>Relatório Geral (PDF)</strong>
+                <small class="d-block text-muted">Manutenções dos últimos 30 dias</small>
+              </button>
+              <button type="button" class="list-group-item list-group-item-action" onclick="alert('Funcionalidade em desenvolvimento')">
+                <i class="bi bi-file-earmark-excel text-success"></i> <strong>Custos por Veículo (Excel)</strong>
+                <small class="d-block text-muted">Detalhamento de custos</small>
+              </button>
+              <button type="button" class="list-group-item list-group-item-action" onclick="alert('Funcionalidade em desenvolvimento')">
+                <i class="bi bi-file-earmark-excel text-success"></i> <strong>Histórico de Peças (Excel)</strong>
+                <small class="d-block text-muted">Todas as peças substituídas</small>
+              </button>
+              <button type="button" class="list-group-item list-group-item-action" onclick="alert('Funcionalidade em desenvolvimento')">
+                <i class="bi bi-file-pdf text-danger"></i> <strong>Cronograma de Manutenção (PDF)</strong>
+                <small class="d-block text-muted">Próximas revisões programadas</small>
+              </button>
+            </div>
+
+            <div class="alert alert-info mt-3">
+              <i class="bi bi-info-circle"></i> <strong>Relatório Completo do Veículo:</strong>
+              <select id="selectVeiculo" class="form-select form-select-sm mt-2">
+                <option value="">Selecione um veículo...</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" onclick="baixarRelatorioVeiculo()" id="btnBaixarRelatorio" disabled>
+                <i class="bi bi-download"></i> Baixar Relatório Completo
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. EXTRAS - OBSERVAÇÕES E FOTOS -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm" style="border-radius: 12px;">
+          <div class="card-header bg-success text-dark" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-image"></i> Fotos Antes/Depois e Observações</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Fotos do Serviço - ABC-1234 (Troca de Pneus)</h6>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div style="background: #f0f0f0; padding: 20px; border-radius: 8px; text-align: center;">
+                      <i class="bi bi-image" style="font-size: 40px; color: #999;"></i>
+                      <p class="mt-2"><small>Foto Antes</small></p>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div style="background: #f0f0f0; padding: 20px; border-radius: 8px; text-align: center;">
+                      <i class="bi bi-image" style="font-size: 40px; color: #999;"></i>
+                      <p class="mt-2"><small>Foto Depois</small></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <h6>Observações do Mecânico</h6>
+                <div style="background: #0f172a; padding: 15px; border-radius: 8px; border-left: 4px solid #0d6efd; min-height: 100px;">
+                  <p class="mb-0">
+                    <strong>Mecânico:</strong> João Silva<br>
+                    <strong>Data:</strong> 10/12/2024<br><br>
+                    "Pneus estavam muito desgastados. Alinhamento realizado após troca. Recomendo verificar suspensão no próximo checklist, pois há desgaste irregular."
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RODAPÉ DE AÇÕES -->
+    <div class="row">
+      <div class="col-12">
+        <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
+          <p class="text-muted mb-3">Última atualização: 15/12/2024 às 14:35</p>
+          <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="refreshDados()">
+              <i class="bi bi-arrow-clockwise"></i> Atualizar Dados
+            </button>
+            <button class="btn btn-outline-secondary" onclick="exportarRelatorio()">
+              <i class="bi bi-file-pdf"></i> Exportar Relatório Completo
+            </button>
+            <button class="btn btn-outline-info" onclick="abrirConfiguracoes()">
+              <i class="bi bi-gear"></i> Configurações
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Chart.js para gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  function adicionarPeca() {
+    const tbody = document.getElementById('tabelaPecas');
+    const novaLinha = document.createElement('tr');
+    novaLinha.className = 'linha-peca';
+    novaLinha.innerHTML = `
+      <td style="padding: 12px 8px;"><input type="text" class="form-control" placeholder="Ex: Filtro de óleo" required style="font-size: 14px; padding: 8px 12px;"></td>
+      <td style="padding: 12px 8px;"><input type="number" class="form-control" value="1" min="1" required style="font-size: 14px; padding: 8px 12px;" oninput="atualizarCustos()"></td>
+      <td style="padding: 12px 8px;"><input type="number" class="form-control" placeholder="0.00" step="0.01" required style="font-size: 14px; padding: 8px 12px;" oninput="atualizarCustos()"></td>
+      <td style="padding: 12px 8px; text-align: right;"><strong style="color: #4fc3f7; font-size: 15px;">R$ 0,00</strong></td>
+      <td style="padding: 12px 8px; text-align: center;"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removerPeca(this)" title="Remover peça"><i class="bi bi-trash"></i></button></td>
+    `;
+    tbody.insertBefore(novaLinha, tbody.lastElementChild);
+    atualizarCustos();
+  }
+
+  function removerPeca(btn) {
+    const tr = btn.closest('tr');
+    tr.remove();
+    atualizarCustos();
+  }
+
+  function adicionarMaoDeObra() {
+    const tbody = document.getElementById('tabelaMaoDeObra');
+    const novaLinha = document.createElement('tr');
+    novaLinha.className = 'linha-mao-obra';
+    novaLinha.innerHTML = `
+      <td style="padding: 12px 8px;"><input type="text" class="form-control" placeholder="Ex: Inspeção e limpeza" required style="font-size: 14px; padding: 8px 12px;"></td>
+      <td style="padding: 12px 8px;"><input type="number" class="form-control" placeholder="0.00" step="0.01" required style="font-size: 14px; padding: 8px 12px;" oninput="atualizarCustos()"></td>
+      <td style="padding: 12px 8px; text-align: center;"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removerMaoDeObra(this)" title="Remover mão de obra"><i class="bi bi-trash"></i></button></td>
+    `;
+    tbody.insertBefore(novaLinha, tbody.lastElementChild);
+    atualizarCustos();
+  }
+
+  function removerMaoDeObra(btn) {
+    const tr = btn.closest('tr');
+    tr.remove();
+    atualizarCustos();
+  }
+
+  function atualizarCustos() {
+    let totalPecas = 0;
+    document.querySelectorAll('.linha-peca').forEach(linha => {
+      const inputs = linha.querySelectorAll('input');
+      if (inputs[0].value.trim() && inputs[1].value && inputs[2].value) {
+        const quantidade = parseFloat(inputs[1].value) || 0;
+        const preco = parseFloat(inputs[2].value) || 0;
+        const subtotal = quantidade * preco;
+        linha.querySelectorAll('strong')[0].textContent = 'R$ ' + subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        totalPecas += subtotal;
+      }
+    });
+
+    let totalMaoDeObra = 0;
+    document.querySelectorAll('.linha-mao-obra').forEach(linha => {
+      const inputs = linha.querySelectorAll('input');
+      if (inputs[0].value.trim() && inputs[1].value) {
+        const valor = parseFloat(inputs[1].value) || 0;
+        totalMaoDeObra += valor;
+      }
+    });
+
+    const totalGeral = totalPecas + totalMaoDeObra;
+
+    document.getElementById('subtotalPecas').textContent = 'R$ ' + totalPecas.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('subtotalMaoDeObra').textContent = 'R$ ' + totalMaoDeObra.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('resumoPecas').textContent = 'R$ ' + totalPecas.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('resumoMaoDeObra').textContent = 'R$ ' + totalMaoDeObra.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('resumoTotal').textContent = 'R$ ' + totalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  function refreshDados() {
+    location.reload();
+  }
+
+  function exportarRelatorio() {
+    alert('Gerando relatório PDF...');
+  }
+
+  function abrirConfiguracoes() {
+    alert('Abrindo configurações...');
+  }
+
+  fetch('/api/analytics/manutencao')
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('kpiMes').textContent = data.qtd_mes;
+      document.getElementById('kpiCusto').textContent = 'R$ ' + (data.custo_mes || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+      if (data.monthly_data && data.monthly_data.length > 0) {
+        const labels = data.monthly_data.map(d => d.mes);
+        const quantities = data.monthly_data.map(d => d.quantidade);
+
+        const ctxManutencoes = document.getElementById('chartManutencoes').getContext('2d');
+        const gradManutencoes = ctxManutencoes.createLinearGradient(0, 0, 0, 300);
+        gradManutencoes.addColorStop(0, 'rgba(13, 110, 253, 0.3)');
+        gradManutencoes.addColorStop(1, 'rgba(13, 110, 253, 0.05)');
+
+        new Chart(ctxManutencoes, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Manutenções',
+              data: quantities,
+              borderColor: '#0d6efd',
+              backgroundColor: gradManutencoes,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointBackgroundColor: '#0d6efd'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: true }
+            },
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+      }
+
+      if (data.problemas && data.problemas.length > 0) {
+        const ctxProblemas = document.getElementById('chartProblemas').getContext('2d');
+        const colors = ['#dc3545', '#ffc107', '#0d6efd', '#198754', '#fd7e14', '#6c757d', '#ff6c00', '#e67e22', '#9b59b6', '#3498db'];
+
+        new Chart(ctxProblemas, {
+          type: 'doughnut',
+          data: {
+            labels: data.problemas.map(d => d.problema),
+            datasets: [{
+              data: data.problemas.map(d => d.ocorrencias),
+              backgroundColor: colors.slice(0, data.problemas.length),
+              borderColor: '#fff',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+      }
+
+      if (data.veiculos && data.veiculos.length > 0) {
+        const ctxVeiculos = document.getElementById('chartVeiculos').getContext('2d');
+        new Chart(ctxVeiculos, {
+          type: 'bar',
+          data: {
+            labels: data.veiculos.map(d => d.placa),
+            datasets: [{
+              label: 'Quantidade',
+              data: data.veiculos.map(d => d.quantidade),
+              backgroundColor: '#0d6efd',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { beginAtZero: true }
+            }
+          }
+        });
+      }
+
+      if (data.custos && data.custos.length > 0) {
+        const ctxCustos = document.getElementById('chartCustos').getContext('2d');
+        const gradCustos = ctxCustos.createLinearGradient(0, 0, 0, 300);
+        gradCustos.addColorStop(0, 'rgba(220, 53, 69, 0.3)');
+        gradCustos.addColorStop(1, 'rgba(220, 53, 69, 0.05)');
+
+        new Chart(ctxCustos, {
+          type: 'line',
+          data: {
+            labels: data.custos.map(d => d.mes),
+            datasets: [{
+              label: 'Custos (R$)',
+              data: data.custos.map(d => d.custos),
+              borderColor: '#dc3545',
+              backgroundColor: gradCustos,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointBackgroundColor: '#dc3545'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: true }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return 'R$ ' + value.toLocaleString('pt-BR');
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      if (data.recentes && data.recentes.length > 0) {
+        const historicoHTML = data.recentes.map(m => `
+          <div class="d-flex align-items-start mb-3">
+            <i class="bi bi-check-circle text-success" style="font-size: 20px; margin-right: 10px;"></i>
+            <div>
+              <h6 class="mb-0">${m.placa}</h6>
+              <small class="text-muted">${m.peca} - ${m.data}</small>
+              <span class="badge bg-success">R$ ${m.custo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+            </div>
+          </div>
+        `).join('');
+        document.getElementById('historicoRecente').innerHTML = historicoHTML;
+      }
+    })
+    .catch(error => console.error('Erro ao carregar dados:', error));
+
+  document.getElementById('formManutencao').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const veiculoId = document.getElementById('selectVeiculoManutencao').value;
+    const data = document.getElementById('dataManutencao').value;
+    const tipo = document.getElementById('tipoManutencao').value;
+    const quilometragem = document.getElementById('quilometragemAtual').value;
+    const descricao = document.getElementById('descricaoServico').value;
+    const tecnico = document.getElementById('tecnicoResponsavel').value;
+    const gravidade = document.getElementById('gravidade').value;
+    const observacoes = document.getElementById('observacoes').value;
+    const comentarioMecanico = document.getElementById('comentarioMecanico').value;
+    
+    if (!veiculoId || !data || !tipo || !quilometragem || !descricao || !tecnico) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+    
+    const pecas = [];
+    document.querySelectorAll('.linha-peca').forEach(linha => {
+      const inputs = linha.querySelectorAll('input');
+      if (inputs[0].value.trim()) {
+        pecas.push({
+          nome: inputs[0].value,
+          quantidade: parseFloat(inputs[1].value) || 1,
+          preco: parseFloat(inputs[2].value) || 0
+        });
+      }
+    });
+    
+    const maoDeObra = [];
+    document.querySelectorAll('.linha-mao-obra').forEach(linha => {
+      const inputs = linha.querySelectorAll('input');
+      if (inputs[0].value.trim()) {
+        maoDeObra.push({
+          descricao: inputs[0].value,
+          valor: parseFloat(inputs[1].value) || 0
+        });
+      }
+    });
+    
+    const totalPecas = pecas.reduce((sum, p) => sum + (p.quantidade * p.preco), 0);
+    const totalMaoDeObra = maoDeObra.reduce((sum, m) => sum + m.valor, 0);
+    
+    const payload = {
+      veiculo_id: parseInt(veiculoId),
+      data_manutencao: data,
+      tipo_manutencao: tipo,
+      quilometragem_atual: parseInt(quilometragem),
+      descricao_servico: descricao,
+      tecnico: tecnico,
+      gravidade: gravidade,
+      observacoes: observacoes,
+      comentario_mecanico: comentarioMecanico,
+      pecas: pecas,
+      mao_de_obra: maoDeObra,
+      valor_peca: totalPecas,
+      mao_de_obra_valor: totalMaoDeObra
+    };
+    
+    fetch('/api/registrar-manutencao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Manutenção registrada com sucesso!');
+        document.getElementById('formManutencao').reset();
+        document.getElementById('tabelaPecas').innerHTML = '<tr style="background: #0f172a;"><td colspan="4" class="text-end fw-bold">Subtotal Peças:</td><td><strong id="subtotalPecas">R$ 0,00</strong></td></tr>';
+        document.getElementById('tabelaMaoDeObra').innerHTML = '<tr style="background: #0f172a;"><td class="text-end fw-bold">Subtotal Mão de Obra:</td><td><strong id="subtotalMaoDeObra">R$ 0,00</strong></td><td></td></tr>';
+        document.getElementById('resumoPecas').textContent = 'R$ 0,00';
+        document.getElementById('resumoMaoDeObra').textContent = 'R$ 0,00';
+        document.getElementById('resumoTotal').textContent = 'R$ 0,00';
+        document.getElementById('selectVeiculoManutencao').innerHTML = '<option>Selecione...</option>';
+        carregarVeiculosDisponveis();
+        carregarVeiculosComManutencao();
+        location.reload();
+      } else {
+        alert('Erro: ' + (data.error || 'Erro ao registrar manutenção'));
+      }
+    })
+    .catch(error => {
+      console.error('Erro:', error);
+      alert('Erro ao registrar manutenção: ' + error);
+    });
+  });
+
+  function handleDragOver(e) {
+     e.preventDefault();
+     e.stopPropagation();
+     document.getElementById('dropZone').style.backgroundColor = 'rgba(13, 110, 253, 0.15)';
+     document.getElementById('dropZone').style.borderColor = '#0d6efd';
+   }
+
+   function handleDragLeave(e) {
+     e.preventDefault();
+     e.stopPropagation();
+     document.getElementById('dropZone').style.backgroundColor = '#0f172a';
+     document.getElementById('dropZone').style.borderColor = '#667eea';
+   }
+
+   function handleDrop(e) {
+     e.preventDefault();
+     e.stopPropagation();
+     document.getElementById('dropZone').style.backgroundColor = '#0f172a';
+     document.getElementById('dropZone').style.borderColor = '#667eea';
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      document.getElementById('fileInput').files = files;
+      handleFileSelect({ target: { files: files } });
+    }
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('Arquivo muito grande! Máximo de 10MB.');
+      return;
+    }
+
+    const manutenacaoId = document.getElementById('kpiTotal');
+    if (!manutenacaoId || !manutenacaoId.dataset.manutencaoId) {
+      alert('Nenhuma manutenção selecionada. Por favor, selecione uma manutenção primeiro.');
+      return;
+    }
+
+    uploadArquivo(file, manutenacaoId.dataset.manutencaoId);
+  }
+
+  function uploadArquivo(file, manutenacaoId) {
+    const formData = new FormData();
+    formData.append('arquivo', file);
+
+    document.getElementById('uploadProgress').style.display = 'block';
+    document.getElementById('fileInput').disabled = true;
+
+    fetch(`/manutencao/${manutenacaoId}/upload-nota-fiscal`, {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('uploadProgress').style.display = 'none';
+      document.getElementById('fileInput').disabled = false;
+      
+      if (data.success) {
+        alert('Arquivo enviado com sucesso!');
+        document.getElementById('fileInput').value = '';
+        carregarArquivosRecentes(manutenacaoId);
+      } else {
+        alert('Erro: ' + (data.error || 'Erro ao enviar arquivo'));
+      }
+    })
+    .catch(error => {
+      document.getElementById('uploadProgress').style.display = 'none';
+      document.getElementById('fileInput').disabled = false;
+      alert('Erro ao enviar arquivo: ' + error);
+      console.error('Erro:', error);
+    });
+  }
+
+  function carregarArquivosRecentes(manutenacaoId) {
+    fetch(`/api/manutencao/${manutenacaoId}/arquivos`)
+      .then(response => response.json())
+      .then(data => {
+        const container = document.getElementById('recentFiles');
+        if (data.arquivos && data.arquivos.length > 0) {
+          container.innerHTML = data.arquivos.map(arquivo => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-file-earmark-pdf text-danger"></i> ${arquivo.nome}</span>
+              <a href="/manutencao/${manutenacaoId}/download-nota-fiscal" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-download"></i>
+              </a>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p class="text-muted text-center py-3">Nenhum arquivo carregado.</p>';
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao carregar arquivos:', error);
+      });
+  }
+
+  function exportarRelatorioGeral() {
+    alert('Exportando relatório geral...');
+  }
+
+  function baixarRelatorioVeiculo() {
+    const veiculoId = document.getElementById('selectVeiculo').value;
+    if (!veiculoId) {
+      alert('Por favor, selecione um veículo');
+      return;
+    }
+    window.location.href = `/veiculo/${veiculoId}/relatorio-completo`;
+  }
+
+  fetch('/api/veiculos')
+    .then(response => response.json())
+    .then(data => {
+      const select = document.getElementById('selectVeiculo');
+      const btn = document.getElementById('btnBaixarRelatorio');
+      
+      if (data && data.items && data.items.length > 0) {
+        const options = data.items.map(v => `<option value="${v.id}">${v.placa} - ${v.modelo}</option>`).join('');
+        select.innerHTML = '<option value="">Selecione um veículo...</option>' + options;
+        
+        select.addEventListener('change', function() {
+          btn.disabled = this.value === '';
+        });
+      }
+    })
+    .catch(error => console.error('Erro ao carregar veículos:', error));
+
+  function formatarData(data) {
+    if (!data) return '-';
+    const date = new Date(data);
+    return date.toLocaleDateString('pt-BR');
+  }
+
+  function formatarMoeda(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(valor);
+  }
+
+  function carregarVeiculosComManutencao() {
+    fetch('/api/veiculos-com-manutencao')
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.getElementById('corpoTabelaVeiculos');
+        
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">
+                <i class="bi bi-inbox"></i> Nenhum veículo com manutenção registrada
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
+        tbody.innerHTML = data.map((v, index) => `
+          <tr style="background-color: ${index % 2 === 0 ? '#0f172a' : '#1e293b'}; color: #e2e8f0;">
+            <td><strong>${v.placa}</strong></td>
+            <td>${v.modelo}</td>
+            <td><span class="badge ${v.tipo === 'Carro' ? 'bg-primary' : 'bg-warning'}">${v.tipo}</span></td>
+            <td>${v.condutor || '-'}</td>
+            <td><span class="badge bg-info">${v.total_manutencoes}</span></td>
+            <td>${formatarData(v.ultima_manutencao)}</td>
+            <td>${formatarMoeda(v.custo_total)}</td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <a href="/manutencao/veiculo/${v.id}" class="btn btn-outline-info" title="Ver Detalhes">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <button type="button" class="btn btn-outline-success" onclick="gerarRelatoriVeiculo(${v.id}, '${v.placa}')" title="Gerar Relatório">
+                  <i class="bi bi-download"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      })
+      .catch(error => {
+        console.error('Erro ao carregar veículos com manutenção:', error);
+        document.getElementById('corpoTabelaVeiculos').innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center text-danger py-4">
+              <i class="bi bi-exclamation-triangle"></i> Erro ao carregar dados
+            </td>
+          </tr>
+        `;
+      });
+  }
+
+  function gerarRelatoriVeiculo(veiculoId, placa) {
+    window.location.href = `/veiculo/${veiculoId}/relatorio-completo`;
+  }
+
+  carregarVeiculosComManutencao();
+
+  function carregarVeiculosDisponveis() {
+    fetch('/api/veiculos-disponveis')
+      .then(response => response.json())
+      .then(data => {
+        const listVeiculos = document.getElementById('listaVeiculosDisponveis');
+        if (!data || data.length === 0) {
+          listVeiculos.innerHTML = '<p class="text-muted text-center">Nenhum veículo disponível</p>';
+          return;
+        }
+        
+        listVeiculos.innerHTML = data.map(v => `
+          <div class="list-group-item list-group-item-action cursor-pointer" onclick="selecionarVeiculo(${v.id}, '${v.placa}', '${v.modelo}')">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1"><strong>${v.placa}</strong></h6>
+              <span class="badge ${v.tipo === 'Carro' ? 'bg-primary' : 'bg-warning'}">${v.tipo}</span>
+            </div>
+            <p class="mb-1 text-muted">${v.modelo}</p>
+            <small class="text-muted">Condutor: ${v.condutor || '-'}</small>
+          </div>
+        `).join('');
+      })
+      .catch(error => console.error('Erro ao buscar veículos:', error));
+  }
+
+  function selecionarVeiculo(veiculoId, placa, modelo) {
+    const select = document.getElementById('selectVeiculoManutencao');
+    select.innerHTML = '<option value="' + veiculoId + '">' + placa + ' - ' + modelo + '</option>';
+    select.value = veiculoId;
+    const modal = bootstrap.Modal.getInstance(document.getElementById('buscarVeiculoModal'));
+    if (modal) modal.hide();
+  }
+
+  function adicionarNovoVeiculo() {
+    const form = document.getElementById('formNovoVeiculo');
+    const placa = document.getElementById('novosVeiculoPlaca').value.trim();
+    const modelo = document.getElementById('novosVeiculoModelo').value.trim();
+    const tipo = document.getElementById('novosVeiculoTipo').value;
+    const condutor = document.getElementById('novosVeiculoCondutor').value.trim();
+
+    if (!placa || !modelo) {
+      alert('Placa e Modelo são obrigatórios');
+      return;
+    }
+
+    fetch('/api/adicionar-veiculo-manutencao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ placa, modelo, tipo, condutor })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        selecionarVeiculo(data.veiculo_id, placa, modelo);
+        form.reset();
+        carregarVeiculosDisponveis();
+      } else {
+        alert('Erro: ' + data.message);
+      }
+    })
+    .catch(error => console.error('Erro ao adicionar veículo:', error));
+  }
+
+  let arquivosNotaFiscalSelecionados = [];
+
+  function carregarVeiculosParaNotaFiscal() {
+    fetch('/api/veiculos')
+      .then(response => response.json())
+      .then(data => {
+        const select = document.getElementById('selectVeiculoNotaFiscal');
+        if (data && data.items && data.items.length > 0) {
+          const options = data.items.map(v => `<option value="${v.id}">${v.placa} - ${v.modelo}</option>`).join('');
+          select.innerHTML = '<option value="">Escolha um veículo...</option>' + options;
+        }
+      })
+      .catch(error => console.error('Erro ao carregar veículos:', error));
+  }
+
+  function handleDragOverNotaFiscal(e) {
+     e.preventDefault();
+     e.stopPropagation();
+     document.getElementById('dropZoneNotaFiscal').style.backgroundColor = 'rgba(102, 126, 234, 0.15)';
+     document.getElementById('dropZoneNotaFiscal').style.borderColor = '#667eea';
+   }
+
+   function handleDragLeaveNotaFiscal(e) {
+     e.preventDefault();
+     e.stopPropagation();
+     document.getElementById('dropZoneNotaFiscal').style.backgroundColor = '#0f172a';
+     document.getElementById('dropZoneNotaFiscal').style.borderColor = '#667eea';
+   }
+
+   function handleDropNotaFiscal(e) {
+     e.preventDefault();
+     e.stopPropagation();
+     document.getElementById('dropZoneNotaFiscal').style.backgroundColor = '#0f172a';
+     document.getElementById('dropZoneNotaFiscal').style.borderColor = '#667eea';
+    
+    const files = e.dataTransfer.files;
+    for (let file of files) {
+      adicionarArquivoALista(file);
+    }
+  }
+
+  function adicionarArquivoNotaFiscal(event) {
+    const files = event.target.files;
+    for (let file of files) {
+      adicionarArquivoALista(file);
+    }
+    document.getElementById('fileInputNotaFiscal').value = '';
+  }
+
+  function adicionarArquivoALista(file) {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('Arquivo ' + file.name + ' é muito grande! Máximo de 10MB.');
+      return;
+    }
+
+    const novoArquivo = {
+      arquivo: file,
+      nome: file.name,
+      id: Date.now() + Math.random()
+    };
+
+    arquivosNotaFiscalSelecionados.push(novoArquivo);
+    atualizarListaArquivosNotaFiscal();
+    document.getElementById('btnSalvarNotasFiscais').disabled = false;
+  }
+
+  function atualizarListaArquivosNotaFiscal() {
+    const container = document.getElementById('listaArquivosNotaFiscal');
+    
+    if (arquivosNotaFiscalSelecionados.length === 0) {
+      container.innerHTML = '<p class="text-muted text-center py-3">Nenhum arquivo selecionado. Adicione um arquivo!</p>';
+      document.getElementById('btnSalvarNotasFiscais').disabled = true;
+      return;
+    }
+
+    container.innerHTML = arquivosNotaFiscalSelecionados.map(arq => `
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-file-earmark-pdf text-danger"></i> ${arq.nome}</span>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerArquivoNotaFiscal('${arq.id}')">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    `).join('');
+  }
+
+  function removerArquivoNotaFiscal(id) {
+    arquivosNotaFiscalSelecionados = arquivosNotaFiscalSelecionados.filter(a => a.id != id);
+    atualizarListaArquivosNotaFiscal();
+  }
+
+  function limparArquivosNotaFiscal() {
+    arquivosNotaFiscalSelecionados = [];
+    atualizarListaArquivosNotaFiscal();
+  }
+
+  function salvarNotasFiscaisVeiculo() {
+    const veiculoId = document.getElementById('selectVeiculoNotaFiscal').value;
+    
+    if (!veiculoId) {
+      alert('Por favor, selecione um veículo');
+      return;
+    }
+
+    if (arquivosNotaFiscalSelecionados.length === 0) {
+      alert('Por favor, adicione pelo menos um arquivo');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('veiculo_id', veiculoId);
+    arquivosNotaFiscalSelecionados.forEach(arq => {
+      formData.append('arquivos', arq.arquivo);
+    });
+
+    fetch('/api/salvar-notas-fiscais-veiculo', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Notas fiscais salvas com sucesso!');
+        limparArquivosNotaFiscal();
+        carregarNotasFiscaisVeiculo();
+      } else {
+        alert('Erro: ' + (data.error || 'Erro ao salvar notas fiscais'));
+      }
+    })
+    .catch(error => {
+      console.error('Erro:', error);
+      alert('Erro ao salvar notas fiscais: ' + error);
+    });
+  }
+
+  function carregarNotasFiscaisVeiculo() {
+    const veiculoId = document.getElementById('selectVeiculoNotaFiscal').value;
+    
+    if (!veiculoId) {
+      document.getElementById('notasFiscaisVeiculo').innerHTML = '<p class="text-muted text-center py-3">Selecione um veículo para ver as notas fiscais</p>';
+      return;
+    }
+
+    fetch(`/api/notas-fiscais-veiculo/${veiculoId}`)
+      .then(response => response.json())
+      .then(data => {
+        const container = document.getElementById('notasFiscaisVeiculo');
+        
+        if (data && data.notas && data.notas.length > 0) {
+          container.innerHTML = data.notas.map(nota => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <span><i class="bi bi-file-earmark-pdf text-danger"></i> ${nota.nome_arquivo}</span>
+                <small class="d-block text-muted">Adicionado em: ${new Date(nota.data_upload).toLocaleDateString('pt-BR')}</small>
+              </div>
+              <div class="btn-group btn-group-sm">
+                <a href="/api/download-nota-fiscal/${nota.id}" class="btn btn-outline-info" title="Baixar">
+                  <i class="bi bi-download"></i>
+                </a>
+                <button type="button" class="btn btn-outline-danger" onclick="deletarNotaFiscal(${nota.id})" title="Deletar">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p class="text-muted text-center py-3">Nenhuma nota fiscal para este veículo</p>';
+        }
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        document.getElementById('notasFiscaisVeiculo').innerHTML = '<p class="text-danger text-center py-3">Erro ao carregar notas fiscais</p>';
+      });
+  }
+
+  function deletarNotaFiscal(notaId) {
+    if (confirm('Tem certeza que deseja deletar esta nota fiscal?')) {
+      fetch(`/api/deletar-nota-fiscal/${notaId}`, {
+        method: 'DELETE'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          carregarNotasFiscaisVeiculo();
+        } else {
+          alert('Erro ao deletar: ' + (data.error || 'Erro desconhecido'));
+        }
+      })
+      .catch(error => console.error('Erro:', error));
+    }
+  }
+
+  let condutoresCache = [];
+
+  async function carregarCondutores() {
+    try {
+      const response = await fetch('/api/condutores/listar');
+      const data = await response.json();
+      condutoresCache = data;
+      exibirCondutores(data);
+    } catch (error) {
+      console.error('Erro ao carregar condutores:', error);
+      document.getElementById('listaCondutores').innerHTML = 
+        '<p class="text-danger text-center py-3">Erro ao carregar condutores</p>';
+    }
+  }
+
+  function exibirCondutores(condutores) {
+    const container = document.getElementById('listaCondutores');
+    
+    if (!condutores || condutores.length === 0) {
+      container.innerHTML = '<p class="text-muted text-center py-3">Nenhum condutor cadastrado</p>';
+      return;
+    }
+
+    container.innerHTML = condutores.map(condutor => `
+      <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-center">
+          <div style="flex-grow: 1;">
+            <h6 class="mb-1">
+              <i class="bi bi-person-circle"></i> ${condutor.nome}
+            </h6>
+            <small class="text-muted">ID: ${condutor.id}</small>
+          </div>
+          <div>
+            <a href="/condutores/${condutor.id}" class="btn btn-sm btn-outline-info" title="Ver detalhes">
+              <i class="bi bi-eye"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filtrarCondutores(termo) {
+    if (!termo.trim()) {
+      exibirCondutores(condutoresCache);
+      return;
+    }
+
+    const termoLower = termo.toLowerCase();
+    const filtrados = condutoresCache.filter(c => 
+      c.nome.toLowerCase().includes(termoLower)
+    );
+    exibirCondutores(filtrados);
+  }
+
+  document.getElementById('buscaCondutor')?.addEventListener('input', function() {
+    filtrarCondutores(this.value);
+  });
+
+  // Função para validar campo em tempo real
+  async function validarCampoCondutor(field, value) {
+    if (!value || value.trim() === '') {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/validar-condutor/${field}/${encodeURIComponent(value)}`);
+      const data = await response.json();
+      
+      const inputId = field === 'cpf' ? 'cpfCondutor' : 'emailCondutor';
+      const input = document.getElementById(inputId);
+      const invalidFeedback = input.parentElement.querySelector('.invalid-feedback');
+      const validFeedback = input.parentElement.querySelector('.valid-feedback');
+      
+      if (data.exists) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        if (invalidFeedback) {
+          invalidFeedback.textContent = `Este ${field} já está cadastrado!`;
+          invalidFeedback.style.display = 'block';
+        }
+        if (validFeedback) {
+          validFeedback.style.display = 'none';
+        }
+      } else {
+        input.classList.add('is-valid');
+        input.classList.remove('is-invalid');
+        if (validFeedback) {
+          validFeedback.textContent = `${field} válido`;
+          validFeedback.style.display = 'block';
+        }
+        if (invalidFeedback) {
+          invalidFeedback.style.display = 'none';
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao validar:', error);
+    }
+  }
+
+  // Adicionar listeners de validação em tempo real
+  const cpfInput = document.getElementById('cpfCondutor');
+  if (cpfInput) {
+    cpfInput.addEventListener('blur', function() {
+      validarCampoCondutor('cpf', this.value);
+    });
+  }
+
+  const emailInput = document.getElementById('emailCondutor');
+  if (emailInput) {
+    emailInput.addEventListener('blur', function() {
+      validarCampoCondutor('email', this.value);
+    });
+  }
+
+  // Botão salvar condutor
+  const btnSalvarCondutor = document.getElementById('btnSalvarCondutor');
+  if (btnSalvarCondutor) {
+    btnSalvarCondutor.addEventListener('click', async function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const formData = new FormData();
+      formData.append('nome', document.getElementById('nomeCondutor').value);
+      formData.append('cpf', document.getElementById('cpfCondutor').value);
+      formData.append('rg', document.getElementById('rgCondutor').value);
+      formData.append('telefone', document.getElementById('telefoneCondutor').value);
+      formData.append('email', document.getElementById('emailCondutor').value);
+      formData.append('data_nascimento', document.getElementById('dataNascimentoCondutor').value);
+      formData.append('endereco', document.getElementById('enderecoCondutor').value);
+
+      try {
+        const response = await fetch('/salvar-condutor', {
+          method: 'POST',
+          body: formData
+        });
+
+        const mensagemDiv = document.getElementById('mensagemCondutor');
+        const data = await response.json();
+        
+        if (response.ok) {
+          mensagemDiv.innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert"><i class="bi bi-check-circle"></i> Condutor cadastrado com sucesso!<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+          mensagemDiv.style.display = 'block';
+          
+          document.getElementById('formNovoConductor').reset();
+          
+          // Limpar validações
+          document.getElementById('cpfCondutor').classList.remove('is-valid', 'is-invalid');
+          document.getElementById('emailCondutor').classList.remove('is-valid', 'is-invalid');
+          
+          setTimeout(() => {
+            carregarCondutores();
+            mensagemDiv.style.display = 'none';
+          }, 2000);
+        } else {
+          const errorMsg = data.error || 'Erro ao cadastrar condutor';
+          mensagemDiv.innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert"><i class="bi bi-exclamation-circle"></i> <strong>Erro:</strong> ${errorMsg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+          mensagemDiv.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        document.getElementById('mensagemCondutor').innerHTML = 
+          '<div class="alert alert-danger alert-dismissible fade show" role="alert"><i class="bi bi-exclamation-circle"></i> Erro na requisição<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+        document.getElementById('mensagemCondutor').style.display = 'block';
+      }
+      return false;
+    });
+  }
+
+  const inputCondutor = document.getElementById('novosVeiculoCondutor');
+  const sugestoesDiv = document.getElementById('sugestoesCondutores');
+
+  inputCondutor?.addEventListener('input', function() {
+    const termo = this.value.toLowerCase().trim();
+    
+    if (!termo) {
+      sugestoesDiv.style.display = 'none';
+      return;
+    }
+
+    const sugestoes = condutoresCache.filter(c => 
+      c.nome.toLowerCase().includes(termo)
+    );
+
+    if (sugestoes.length === 0) {
+      sugestoesDiv.style.display = 'none';
+      return;
+    }
+
+    sugestoesDiv.innerHTML = sugestoes.map(c => `
+      <button type="button" class="list-group-item list-group-item-action" onclick="selecionarCondutor('${c.nome}', event)">
+        <i class="bi bi-person-circle"></i> ${c.nome}
+      </button>
+    `).join('');
+    sugestoesDiv.style.display = 'block';
+  });
+
+  function selecionarCondutor(nome, event) {
+    event.preventDefault();
+    document.getElementById('novosVeiculoCondutor').value = nome;
+    sugestoesDiv.style.display = 'none';
+  }
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#novosVeiculoCondutor') && !e.target.closest('#sugestoesCondutores')) {
+      sugestoesDiv.style.display = 'none';
+    }
+  });
+
+  async function carregarTopIndicadores() {
+    try {
+      const responseBench = await fetch('/api/indicadores/benchmarking-veiculos');
+      const dataBench = await responseBench.json();
+      
+      if (dataBench.benchmarking) {
+        const top3Veiculos = dataBench.benchmarking.slice(0, 3);
+        let html = '';
+        
+        top3Veiculos.forEach((veiculo, index) => {
+          html += `
+            <div class="d-flex align-items-center mb-3 p-2 border-bottom">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; margin-right: 12px;">
+                ${index + 1}º
+              </div>
+              <div style="flex: 1;">
+                <strong>${veiculo.placa}</strong> - ${veiculo.modelo}
+                <br>
+                <small class="text-muted">${veiculo.consumo_medio_km_l.toFixed(2)} km/l | R$ ${veiculo.custo_por_km.toFixed(4)}/km</small>
+              </div>
+              <span class="badge bg-success">${veiculo.consumo_medio_km_l.toFixed(2)}</span>
+            </div>
+          `;
+        });
+        
+        document.getElementById('topVeiculosContainer').innerHTML = html || '<p class="text-muted">Sem dados</p>';
+      }
+    } catch (error) {
+      console.error('Erro ao carregar top veículos:', error);
+      document.getElementById('topVeiculosContainer').innerHTML = '<p class="text-danger">Erro ao carregar dados</p>';
+    }
+
+    try {
+      const responseCond = await fetch('/api/indicadores/benchmarking-condutores');
+      const dataCond = await responseCond.json();
+      
+      if (dataCond.benchmarking) {
+        const top3Condutores = dataCond.benchmarking.slice(0, 3);
+        let html = '';
+        
+        top3Condutores.forEach((condutor, index) => {
+          html += `
+            <div class="d-flex align-items-center mb-3 p-2 border-bottom">
+              <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; margin-right: 12px;">
+                ${index + 1}º
+              </div>
+              <div style="flex: 1;">
+                <strong>${condutor.condutor_nome}</strong>
+                <br>
+                <small class="text-muted">${condutor.consumo_medio_km_l.toFixed(2)} km/l | R$ ${condutor.custo_por_km.toFixed(4)}/km</small>
+              </div>
+              <span class="badge bg-info">${condutor.consumo_medio_km_l.toFixed(2)}</span>
+            </div>
+          `;
+        });
+        
+        document.getElementById('topCondutoresContainer').innerHTML = html || '<p class="text-muted">Sem dados</p>';
+      }
+    } catch (error) {
+      console.error('Erro ao carregar top condutores:', error);
+      document.getElementById('topCondutoresContainer').innerHTML = '<p class="text-danger">Erro ao carregar dados</p>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    carregarVeiculosDisponveis();
+    carregarVeiculosParaNotaFiscal();
+    carregarCondutores();
+    carregarTopIndicadores();
+  });
+</script>
+
+<!-- MODAL: Buscar ou Cadastrar Veículo -->
+<div class="modal fade" id="buscarVeiculoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="bi bi-car-front-fill"></i> Selecionar ou Cadastrar Veículo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-buscar" data-bs-toggle="tab" data-bs-target="#pane-buscar" type="button" role="tab">
+              <i class="bi bi-search"></i> Buscar Veículos
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-novo" data-bs-toggle="tab" data-bs-target="#pane-novo" type="button" role="tab">
+              <i class="bi bi-plus-circle"></i> Novo Veículo
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+          <!-- Aba: Buscar Veículos -->
+          <div class="tab-pane fade show active" id="pane-buscar" role="tabpanel">
+            <div class="list-group" id="listaVeiculosDisponveis">
+              <div class="text-center py-4">
+                <i class="bi bi-hourglass-split"></i> Carregando veículos...
+              </div>
+            </div>
+          </div>
+
+          <!-- Aba: Novo Veículo -->
+          <div class="tab-pane fade" id="pane-novo" role="tabpanel">
+            <form id="formNovoVeiculo">
+              <div class="mb-3">
+                <label class="form-label">Placa do Veículo *</label>
+                <input type="text" class="form-control" id="novosVeiculoPlaca" placeholder="Ex: ABC-1234" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Modelo *</label>
+                <input type="text" class="form-control" id="novosVeiculoModelo" placeholder="Ex: Corsa 2010" required>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Tipo</label>
+                  <select class="form-select" id="novosVeiculoTipo">
+                    <option value="Carro">Carro</option>
+                    <option value="Moto">Moto</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Condutor</label>
+                  <div style="position: relative;">
+                    <input type="text" class="form-control" id="novosVeiculoCondutor" placeholder="Nome do condutor" autocomplete="off">
+                    <div id="sugestoesCondutores" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; max-height: 200px; overflow-y: auto; display: none; border-radius: 0 0 4px 4px; z-index: 1000;" class="list-group list-group-flush"></div>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-primary w-100" onclick="adicionarNovoVeiculo()">
+                <i class="bi bi-plus-circle"></i> Cadastrar Veículo
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

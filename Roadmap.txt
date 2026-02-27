@@ -1,0 +1,38 @@
+
+## 🚀 Roadmap de Evolução do Sistema de Gestão de Frota
+
+### **Fase 1 – Consolidação do Básico (Curto Prazo)**
+- **Dashboard Personalizável**: permitir que cada usuário escolha os indicadores que deseja ver.
+- **Filtros inteligentes**: busca avançada por placa, condutor, status e período.
+- **Alertas automáticos**: notificações de manutenção vencida, multas pendentes e checklists críticos.
+- **Exportação de relatórios em PDF**: consolidar relatórios de veículos e manutenções com visual profissional.
+
+---
+
+### **Fase 2 – Eficiência Operacional (Médio Prazo)**
+- **Integração com GPS/Telemetria**: localização em tempo real, consumo e comportamento de condução.
+- **Relatórios comparativos**: custo por km, consumo médio, ranking de veículos mais eficientes.
+- **Gestão de condutores avançada**: estatísticas de desempenho, ranking e histórico de infrações.
+- **Módulo de combustível otimizado**: gráficos de consumo, ticket médio e alertas de anomalias.
+
+---
+
+### **Fase 3 – Inteligência e Automação (Longo Prazo)**
+- **Previsão de falhas com IA**: sugerir manutenções preventivas com base em histórico.
+- **Checklist adaptativo**: itens críticos recorrentes viram obrigatórios nos próximos checklists.
+- **Gamificação**: ranking de condutores, recompensas por bom desempenho.
+- **Exportação para Excel**: custos detalhados, peças, infrações e histórico completo.
+
+---
+
+### **Fase 4 – Experiência e Escalabilidade**
+- **App Mobile com modo offline (PWA)**: registro de checklists e abastecimentos mesmo sem internet.
+- **Controle de permissões granular**: perfis customizados além de Admin/Usuário.
+- **Logs de auditoria**: rastrear todas as ações para maior segurança.
+- **Interface moderna**: gráficos interativos, heatmaps de problemas, design responsivo.
+
+---
+
+👉 Com esse roadmap, você consegue priorizar o que dá mais impacto imediato (alertas, relatórios, filtros) e depois evoluir para inteligência artificial e integração com telemetria.  
+
+Quer que eu monte um **esboço visual do roadmap em formato de gráfico de etapas** para ficar mais claro o plano de evolução?

@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+         <div class="col-md-6">
+             <h1>🚨 Gestão de Multas</h1>
+         </div>
+         <div class="col-md-6 text-right">
+             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaMulta" onclick="resetForm()">
+                 <i class="bi bi-plus-circle"></i> Registrar Multa
+             </button>
+         </div>
+     </div>
+
+    <!-- Tabela de Multas Pendentes -->
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Multas Pendentes</h5>
+        </div>
+        <div class="card-body">
+            {% if multas %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Veículo</th>
+                            <th>Data</th>
+                            <th>Número Multa</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for multa in multas %}
+                        <tr>
+                            <td>
+                                <strong>{{ multa.placa }}</strong>
+                            </td>
+                            <td>{{ multa.data_transacao }}</td>
+                            <td>{{ multa.descricao }}</td>
+                            <td>{{ multa.descricao }}</td>
+                            <td>
+                                <span class="badge badge-danger">R$ {{ "%.2f"|format(multa.valor) }}</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-success" 
+                                    onclick="pagarMulta({{ multa.id }})">
+                                    ✓ Pagar
+                                </button>
+                                <button class="btn btn-sm btn-secondary" 
+                                    data-toggle="modal" 
+                                    data-target="#modalEditarMulta{{ multa.id }}">
+                                    ✎ Editar
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center">Nenhuma multa pendente registrada</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Registrar Multa -->
+<div class="modal fade" id="modalNovaMulta" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-diamond"></i> Registrar Multa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovaMulta">
+                    <div class="mb-3">
+                        <label for="veiculo" class="form-label">Veículo *</label>
+                        <select id="veiculo" class="form-select" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dataMulta" class="form-label">Data da Multa *</label>
+                            <input type="date" id="dataMulta" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="valor" class="form-label">Valor (R$) *</label>
+                            <input type="number" id="valor" class="form-control" step="0.01" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="numeroMulta" class="form-label">Número da Multa</label>
+                        <input type="text" id="numeroMulta" class="form-control" placeholder="Ex: 123456">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="descricaoMulta" class="form-label">Descrição</label>
+                        <textarea id="descricaoMulta" class="form-control" rows="3" placeholder="Descrição da multa..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" onclick="criarMulta()">
+                    <i class="bi bi-check"></i> Registrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Limpar formulário
+    function resetForm() {
+        document.getElementById('formNovaMulta').reset();
+        document.getElementById('veiculo').value = '';
+    }
+
+    // Carregar veículos
+    function carregarVeiculos() {
+        console.log('Carregando veículos...');
+        fetch('/api/veiculos?per_page=1000')
+            .then(r => {
+                console.log('Response status:', r.status);
+                return r.json();
+            })
+            .then(data => {
+                console.log('Veículos recebidos:', data);
+                const select = document.getElementById('veiculo');
+                
+                if (!select) {
+                    console.error('Select com id "veiculo" não encontrado');
+                    return;
+                }
+                
+                select.innerHTML = '<option value="">Selecione um veículo...</option>';
+                
+                let veiculos = [];
+                
+                // A API retorna { items: [...], page, total, etc }
+                if (data.items && Array.isArray(data.items)) {
+                    veiculos = data.items;
+                }
+                // Se a resposta é um array direto
+                else if (Array.isArray(data)) {
+                    veiculos = data;
+                } else {
+                    console.warn('Formato de dados inesperado:', data);
+                    return;
+                }
+                
+                if (veiculos.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Nenhum veículo cadastrado';
+                    option.disabled = true;
+                    select.appendChild(option);
+                    return;
+                }
+                
+                veiculos.forEach(v => {
+                    const option = document.createElement('option');
+                    option.value = v.id;
+                    option.textContent = (v.placa || '') + ' - ' + (v.modelo || '');
+                    select.appendChild(option);
+                });
+                
+                console.log('Veículos carregados com sucesso:', veiculos.length);
+            })
+            .catch(err => {
+                console.error('Erro ao carregar veículos:', err);
+                alert('Erro ao carregar veículos: ' + err.message);
+            });
+    }
+
+    function criarMulta() {
+        const veiculo_id = document.getElementById('veiculo').value;
+        const data_multa = document.getElementById('dataMulta').value;
+        const valor = document.getElementById('valor').value;
+        const numero_multa = document.getElementById('numeroMulta').value;
+        const descricao = document.getElementById('descricaoMulta').value;
+
+        if (!veiculo_id || !data_multa || !valor) {
+            alert('Por favor, preencha os campos obrigatórios (*)');
+            return;
+        }
+
+        fetch('/api/financeiro/multa', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                veiculo_id: parseInt(veiculo_id),
+                data_multa: data_multa,
+                valor: parseFloat(valor),
+                numero_multa: numero_multa,
+                descricao: descricao
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Multa registrada com sucesso!');
+                $('#modalNovaMulta').modal('hide');
+                location.reload();
+            } else {
+                alert('Erro: ' + (data.erro || data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(err => {
+            console.error('Erro:', err);
+            alert('Erro ao registrar multa: ' + err.message);
+        });
+    }
+
+    function pagarMulta(multaId) {
+        if (confirm('Marcar multa como paga?')) {
+            fetch(`/api/financeiro/multa/${multaId}/pagar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    data_pagamento: new Date().toISOString().split('T')[0]
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Multa marcada como paga!');
+                    location.reload();
+                } else {
+                    alert('Erro: ' + (data.erro || data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(err => {
+                console.error('Erro:', err);
+                alert('Erro ao pagar multa: ' + err.message);
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', carregarVeiculos);
+</script>
+{% endblock %}

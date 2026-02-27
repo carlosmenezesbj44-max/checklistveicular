@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">🔧 Gestão de Manutenções</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Comparativo de Gastos com Manutenção</h5>
+                </div>
+                <div class="card-body">
+                    {% if veiculos %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Veículo</th>
+                                    <th>Qtd Manutenções</th>
+                                    <th>Gasto Total</th>
+                                    <th>Gasto Médio</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for v in veiculos %}
+                                <tr>
+                                    <td><strong>{{ v.placa }}</strong></td>
+                                    <td>{{ v.manutencoes }}</td>
+                                    <td>
+                                        <span class="badge badge-primary">
+                                            R$ {{ "%.2f"|format(v.gasto_manutencao) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        R$ {{ "%.2f"|format(v.gasto_manutencao / (v.manutencoes or 1)) }}
+                                    </td>
+                                    <td>
+                                        <a href="/manutencao?veiculo={{ v.id }}" class="btn btn-sm btn-info">
+                                            Ver Histórico
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">Nenhum veículo registrado</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico Comparativo -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">Análise de Manutenção</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartManutencao" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Carregar gráfico comparativo
+    fetch(`/api/financeiro/grafico-barras`)
+        .then(r => r.json())
+        .then(data => {
+            const ctx = document.getElementById('chartManutencao');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'R$ ' + value.toFixed(2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+</script>
+{% endblock %}

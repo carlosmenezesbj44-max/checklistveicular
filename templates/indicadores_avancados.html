@@ -1,0 +1,516 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  #indicadoresTab .nav-link {
+    color: #1f2937 !important;
+    font-weight: 600;
+    border: 1px solid #d1d5db;
+    background-color: #f3f4f6;
+  }
+  #indicadoresTab .nav-link:hover {
+    color: #059669 !important;
+    background-color: #e5e7eb;
+  }
+  #indicadoresTab .nav-link.active {
+    color: #047857 !important;
+    background-color: #ffffff;
+    border-bottom-color: #ffffff;
+  }
+  .card-header.bg-success,
+  .card-header.bg-info,
+  .card-header.bg-primary {
+    background: linear-gradient(135deg, #1f2937, #374151) !important;
+  }
+  .card-header h5 {
+    color: #ffffff !important;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+</style>
+<div class="container-fluid py-4">
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 fw-bold"><i class="bi bi-graph-up"></i> Indicadores Avançados</h1>
+          <p class="text-muted">Análise de custo por rota, eficiência de condutores e benchmarking</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="nav nav-tabs mb-4" id="indicadoresTab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="custo-rota-tab" data-bs-toggle="tab" data-bs-target="#custo-rota" type="button" role="tab">
+        <i class="bi bi-geo-alt"></i> Custo por Rota
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="eficiencia-tab" data-bs-toggle="tab" data-bs-target="#eficiencia" type="button" role="tab">
+        <i class="bi bi-speedometer2"></i> Eficiência por Condutor
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="bench-veiculos-tab" data-bs-toggle="tab" data-bs-target="#bench-veiculos" type="button" role="tab">
+        <i class="bi bi-truck"></i> Benchmarking Veículos
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="bench-condutores-tab" data-bs-toggle="tab" data-bs-target="#bench-condutores" type="button" role="tab">
+        <i class="bi bi-people"></i> Benchmarking Condutores
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="indicadoresTabContent">
+
+    <!-- TAB 1: CUSTO POR ROTA -->
+    <div class="tab-pane fade show active" id="custo-rota" role="tabpanel">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Selecionar Veículo</label>
+          <select id="selectVeiculo" class="form-select">
+            <option value="">-- Escolha um veículo --</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="custoRotaContainer" style="display: none;">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Rotas e Custos</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Data</th>
+                    <th>KM Percorridos</th>
+                    <th>Litros</th>
+                    <th>Custo (R$)</th>
+                    <th>Consumo (km/l)</th>
+                    <th>Custo/KM (R$)</th>
+                  </tr>
+                </thead>
+                <tbody id="tabelaCustoRota">
+                  <tr><td colspan="6" class="text-center text-muted">Carregando...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div class="card shadow-sm">
+              <div class="card-body text-center">
+                <h6 class="text-muted">Total de Rotas</h6>
+                <h3 class="text-primary" id="totalRotas">0</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm">
+              <div class="card-body text-center">
+                <h6 class="text-muted">KM Total</h6>
+                <h3 class="text-info" id="kmTotalRota">0</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm">
+              <div class="card-body text-center">
+                <h6 class="text-muted">Consumo Médio</h6>
+                <h3 class="text-success" id="consumoMedioRota">0</h3>
+                <small>km/l</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm">
+              <div class="card-body text-center">
+                <h6 class="text-muted">Custo Médio/KM</h6>
+                <h3 class="text-warning" id="custoMedioKmRota">0</h3>
+                <small>R$/km</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="semDadosRota" class="alert alert-info text-center" style="display: none;">
+        <i class="bi bi-info-circle"></i> Selecione um veículo para visualizar as rotas
+      </div>
+    </div>
+
+    <!-- TAB 2: EFICIÊNCIA POR CONDUTOR -->
+    <div class="tab-pane fade" id="eficiencia" role="tabpanel">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Eficiência de Condutores</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Condutor</th>
+                  <th>Total KM</th>
+                  <th>Total Gasto (R$)</th>
+                  <th>Total Litros</th>
+                  <th>Consumo (km/l)</th>
+                  <th>Custo/KM (R$)</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaEficiencia">
+                <tr><td colspan="6" class="text-center text-muted">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: BENCHMARKING VEÍCULOS -->
+    <div class="tab-pane fade" id="bench-veiculos" role="tabpanel">
+      <div class="row mb-3">
+        <div class="col-12">
+          <h5 class="text-muted">Ranking por Consumo (km/l)</h5>
+        </div>
+      </div>
+
+      <div id="benchmarkingVeiculosContainer" class="row g-3">
+        <!-- Cards dinâmicos -->
+      </div>
+
+      <div class="card shadow-sm mt-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="bi bi-table"></i> Detalhes Completos</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Posição</th>
+                  <th>Placa</th>
+                  <th>Modelo</th>
+                  <th>KM Rodados</th>
+                  <th>Total Litros</th>
+                  <th>Total Gasto (R$)</th>
+                  <th>Consumo (km/l)</th>
+                  <th>Custo/KM (R$)</th>
+                  <th>Gasto Médio/Abastecimento</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaBenchmarkVeiculos">
+                <tr><td colspan="9" class="text-center text-muted">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: BENCHMARKING CONDUTORES -->
+    <div class="tab-pane fade" id="bench-condutores" role="tabpanel">
+      <div class="row mb-3">
+        <div class="col-12">
+          <h5 class="text-muted">Ranking por Consumo (km/l)</h5>
+        </div>
+      </div>
+
+      <div id="benchmarkingCondutoresContainer" class="row g-3">
+        <!-- Cards dinâmicos -->
+      </div>
+
+      <div class="card shadow-sm mt-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="bi bi-table"></i> Detalhes Completos</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Posição</th>
+                  <th>Condutor</th>
+                  <th>Total KM</th>
+                  <th>Total Gasto (R$)</th>
+                  <th>Total Litros</th>
+                  <th>Consumo (km/l)</th>
+                  <th>Custo/KM (R$)</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaBenchmarkCondutores">
+                <tr><td colspan="7" class="text-center text-muted">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function carregarVeiculos() {
+    try {
+      const response = await fetch('/api/veiculos/listar');
+      const data = await response.json();
+      
+      const select = document.getElementById('selectVeiculo');
+      if (data.veiculos) {
+        data.veiculos.forEach(veiculo => {
+          const option = document.createElement('option');
+          option.value = veiculo.id;
+          option.textContent = `${veiculo.placa} - ${veiculo.modelo}`;
+          select.appendChild(option);
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar veículos:', error);
+    }
+  }
+
+  async function carregarCustoRota(veiculoId) {
+    if (!veiculoId) {
+      document.getElementById('custoRotaContainer').style.display = 'none';
+      document.getElementById('semDadosRota').style.display = 'block';
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/indicadores/custo-rota/${veiculoId}`);
+      const data = await response.json();
+
+      if (data.erro) {
+        document.getElementById('tabelaCustoRota').innerHTML = `<tr><td colspan="6" class="text-center text-danger">${data.erro}</td></tr>`;
+        return;
+      }
+
+      const rotas = data.rotas || [];
+      const tbody = document.getElementById('tabelaCustoRota');
+      
+      if (rotas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhuma rota registrada</td></tr>';
+        return;
+      }
+
+      let html = '';
+      let totalKm = 0, totalConsumo = 0, totalCusto = 0;
+
+      rotas.forEach(rota => {
+        totalKm += rota.km_percorridos;
+        totalConsumo += rota.consumo_km_l;
+        totalCusto += rota.custo_por_km;
+
+        html += `
+          <tr>
+            <td>${new Date(rota.data).toLocaleDateString('pt-BR')}</td>
+            <td>${rota.km_percorridos.toFixed(2)}</td>
+            <td>${rota.litros.toFixed(2)}</td>
+            <td>R$ ${rota.valor.toFixed(2)}</td>
+            <td><span class="badge bg-info">${rota.consumo_km_l.toFixed(2)}</span></td>
+            <td>R$ ${rota.custo_por_km.toFixed(4)}</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+
+      document.getElementById('totalRotas').textContent = rotas.length;
+      document.getElementById('kmTotalRota').textContent = totalKm.toFixed(2);
+      document.getElementById('consumoMedioRota').textContent = (totalConsumo / rotas.length).toFixed(2);
+      document.getElementById('custoMedioKmRota').textContent = (totalCusto / rotas.length).toFixed(4);
+
+      document.getElementById('custoRotaContainer').style.display = 'block';
+      document.getElementById('semDadosRota').style.display = 'none';
+    } catch (error) {
+      console.error('Erro ao carregar custo por rota:', error);
+    }
+  }
+
+  async function carregarEficienciaCondutores() {
+    try {
+      const response = await fetch('/api/indicadores/benchmarking-condutores');
+      const data = await response.json();
+
+      if (data.erro) return;
+
+      const tbody = document.getElementById('tabelaEficiencia');
+      let html = '';
+
+      if (data.benchmarking && data.benchmarking.length > 0) {
+        data.benchmarking.forEach(condutor => {
+          html += `
+            <tr>
+              <td><strong>${condutor.condutor_nome}</strong></td>
+              <td>${condutor.total_km.toFixed(2)}</td>
+              <td>R$ ${condutor.total_gasto.toFixed(2)}</td>
+              <td>${condutor.total_litros.toFixed(2)}</td>
+              <td><span class="badge bg-success">${condutor.consumo_medio_km_l.toFixed(2)}</span></td>
+              <td>R$ ${condutor.custo_por_km.toFixed(4)}</td>
+            </tr>
+          `;
+        });
+      } else {
+        html = '<tr><td colspan="6" class="text-center text-muted">Nenhum dado disponível</td></tr>';
+      }
+
+      tbody.innerHTML = html;
+    } catch (error) {
+      console.error('Erro ao carregar eficiência:', error);
+    }
+  }
+
+  async function carregarBenchmarkingVeiculos() {
+    try {
+      const response = await fetch('/api/indicadores/benchmarking-veiculos');
+      const data = await response.json();
+
+      if (data.erro) return;
+
+      const veiculos = data.benchmarking || [];
+      
+      let cardsHtml = '';
+      let tabelaHtml = '';
+      let posicao = 1;
+
+      veiculos.forEach(v => {
+        cardsHtml += `
+          <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-left-primary">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <h6 class="mb-1"><strong>${v.placa}</strong></h6>
+                    <small class="text-muted">${v.modelo}</small>
+                  </div>
+                  <span class="badge bg-primary">🏆 ${posicao}º</span>
+                </div>
+                <hr>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <small class="text-muted">Consumo</small>
+                    <p class="mb-0 fw-bold">${v.consumo_medio_km_l.toFixed(2)} km/l</p>
+                  </div>
+                  <div class="col-6">
+                    <small class="text-muted">Custo/KM</small>
+                    <p class="mb-0 fw-bold">R$ ${v.custo_por_km.toFixed(4)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        tabelaHtml += `
+          <tr>
+            <td><strong>${posicao}</strong></td>
+            <td>${v.placa}</td>
+            <td>${v.modelo}</td>
+            <td>${v.km_rodados.toFixed(2)}</td>
+            <td>${v.total_litros.toFixed(2)}</td>
+            <td>R$ ${v.total_gasto.toFixed(2)}</td>
+            <td><span class="badge bg-success">${v.consumo_medio_km_l.toFixed(2)}</span></td>
+            <td>R$ ${v.custo_por_km.toFixed(4)}</td>
+            <td>R$ ${v.gasto_medio_abastecimento.toFixed(2)}</td>
+          </tr>
+        `;
+
+        posicao++;
+      });
+
+      document.getElementById('benchmarkingVeiculosContainer').innerHTML = cardsHtml;
+      document.getElementById('tabelaBenchmarkVeiculos').innerHTML = tabelaHtml;
+    } catch (error) {
+      console.error('Erro ao carregar benchmarking veículos:', error);
+    }
+  }
+
+  async function carregarBenchmarkingCondutores() {
+    try {
+      const response = await fetch('/api/indicadores/benchmarking-condutores');
+      const data = await response.json();
+
+      if (data.erro) return;
+
+      const condutores = data.benchmarking || [];
+      
+      let cardsHtml = '';
+      let tabelaHtml = '';
+      let posicao = 1;
+
+      condutores.forEach(c => {
+        cardsHtml += `
+          <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-left-success">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <h6 class="mb-1"><strong>${c.condutor_nome}</strong></h6>
+                    <small class="text-muted">Condutor</small>
+                  </div>
+                  <span class="badge bg-success">🏆 ${posicao}º</span>
+                </div>
+                <hr>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <small class="text-muted">Consumo</small>
+                    <p class="mb-0 fw-bold">${c.consumo_medio_km_l.toFixed(2)} km/l</p>
+                  </div>
+                  <div class="col-6">
+                    <small class="text-muted">Custo/KM</small>
+                    <p class="mb-0 fw-bold">R$ ${c.custo_por_km.toFixed(4)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        tabelaHtml += `
+          <tr>
+            <td><strong>${posicao}</strong></td>
+            <td>${c.condutor_nome}</td>
+            <td>${c.total_km.toFixed(2)}</td>
+            <td>R$ ${c.total_gasto.toFixed(2)}</td>
+            <td>${c.total_litros.toFixed(2)}</td>
+            <td><span class="badge bg-success">${c.consumo_medio_km_l.toFixed(2)}</span></td>
+            <td>R$ ${c.custo_por_km.toFixed(4)}</td>
+          </tr>
+        `;
+
+        posicao++;
+      });
+
+      document.getElementById('benchmarkingCondutoresContainer').innerHTML = cardsHtml;
+      document.getElementById('tabelaBenchmarkCondutores').innerHTML = tabelaHtml;
+    } catch (error) {
+      console.error('Erro ao carregar benchmarking condutores:', error);
+    }
+  }
+
+  document.getElementById('selectVeiculo').addEventListener('change', function() {
+    carregarCustoRota(this.value);
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    carregarVeiculos();
+    carregarEficienciaCondutores();
+    carregarBenchmarkingVeiculos();
+    carregarBenchmarkingCondutores();
+  });
+</script>
+
+<style>
+  .border-left-primary {
+    border-left: 4px solid #0d6efd;
+  }
+  .border-left-success {
+    border-left: 4px solid #198754;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <!-- Cupom Fiscal -->
+      <div id="cupom-container" class="cupom-fiscal">
+        <!-- Header -->
+        <div class="cupom-header">
+          <div class="cupom-logo">⛽</div>
+          <h4>VIP CHECKLIST</h4>
+          <p>CONTROLE DE ABASTECIMENTO</p>
+        </div>
+
+        <!-- Separador -->
+        <hr class="cupom-divider">
+
+        <!-- Número e Data -->
+        <div class="cupom-section">
+          <div class="cupom-row">
+            <span>CUPOM Nº:</span>
+            <strong>{{reg.id}}</strong>
+          </div>
+          <div class="cupom-row">
+            <span>DATA:</span>
+            <strong>{{reg.data_abastecimento or '---'}}</strong>
+          </div>
+        </div>
+
+        <!-- Separador -->
+        <hr class="cupom-divider">
+
+        <!-- Informações do Veículo -->
+        <div class="cupom-section">
+          <h5>VEÍCULO</h5>
+          <div class="cupom-row">
+            <span>PLACA:</span>
+            <strong>{{reg.placa or '---'}}</strong>
+          </div>
+          <div class="cupom-row">
+            <span>MARCA/MODELO:</span>
+            <strong>{{reg.marca or '---'}} / {{reg.modelo or '---'}}</strong>
+          </div>
+          <div class="cupom-row">
+            <span>KM:</span>
+            <strong>{{reg.quilometragem or '---'}} km</strong>
+          </div>
+          <div class="cupom-row">
+            <span>TIPO COMB:</span>
+            <strong>{{reg.tipo_combustivel or '---'}}</strong>
+          </div>
+        </div>
+
+        <!-- Separador -->
+        <hr class="cupom-divider">
+
+        <!-- Detalhes da Compra -->
+        <div class="cupom-section">
+          <h5>DETALHES DA COMPRA</h5>
+          <div class="cupom-row cupom-item">
+            <span>QUANTIDADE:</span>
+            <strong>{{(reg.quantidade_litros|float(0))|round(2)}} L</strong>
+          </div>
+          <div class="cupom-row cupom-item">
+            <span>PREÇO UNITÁRIO:</span>
+            <strong>R$ {{((reg.valor_total|float(0)) / (reg.quantidade_litros|float(0.01)))|round(2)}}</strong>
+          </div>
+          <div class="cupom-row cupom-total">
+            <span>TOTAL:</span>
+            <strong>R$ {{(reg.valor_total|float(0))|round(2)}}</strong>
+          </div>
+        </div>
+
+        <!-- Separador -->
+        <hr class="cupom-divider">
+
+        <!-- Footer -->
+        <div class="cupom-footer">
+          <p>Obrigado!</p>
+          <p style="font-size: 9px;">{{now.strftime('%d/%m/%Y %H:%M')}}</p>
+        </div>
+      </div>
+
+      <!-- Botões -->
+      <div class="text-center mt-3" id="botoes">
+        <button onclick="window.print()" class="btn btn-primary btn-sm">
+          <i class="bi bi-printer"></i> Imprimir
+        </button>
+        <button onclick="window.history.back()" class="btn btn-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i> Voltar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .cupom-fiscal {
+    background: white;
+    color: #000;
+    border: 2px solid #000;
+    padding: 25px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .cupom-header {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  .cupom-logo {
+    font-size: 32px;
+  }
+
+  .cupom-header h4 {
+    margin: 5px 0;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #000;
+  }
+
+  .cupom-header p {
+    margin: 0;
+    font-size: 11px;
+    color: #000;
+  }
+
+  .cupom-divider {
+    border: 0;
+    border-top: 1px dashed #000;
+    margin: 12px 0;
+  }
+
+  .cupom-section {
+    margin: 10px 0;
+  }
+
+  .cupom-section h5 {
+    font-size: 11px;
+    font-weight: bold;
+    border-bottom: 1px solid #000;
+    padding-bottom: 5px;
+    margin: 8px 0;
+    text-transform: uppercase;
+  }
+
+  .cupom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 5px 0;
+    font-size: 12px;
+  }
+
+  .cupom-row span {
+    font-weight: bold;
+    color: #000;
+  }
+
+  .cupom-row strong {
+    text-align: right;
+    color: #000;
+  }
+
+  .cupom-item {
+    font-size: 13px;
+  }
+
+  .cupom-total {
+    border-top: 1px solid #000;
+    border-bottom: 2px solid #000;
+    padding: 8px 0;
+    margin: 10px 0;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .cupom-total span {
+    color: #000;
+  }
+
+  .cupom-total strong {
+    color: #d32f2f;
+  }
+
+  .cupom-footer {
+    text-align: center;
+    margin-top: 15px;
+    padding-top: 10px;
+  }
+
+  .cupom-footer p {
+    margin: 2px 0;
+    color: #000;
+    font-size: 11px;
+  }
+
+  /* Print */
+  @media print {
+    body,
+    html {
+      background: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container-fluid {
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    .row {
+      margin: 0;
+      padding: 0;
+    }
+
+    .col-md-6 {
+      max-width: 100%;
+      padding: 0;
+    }
+
+    .cupom-fiscal {
+      margin: 0;
+      padding: 20px;
+      border: none;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+
+    #botoes {
+      display: none !important;
+    }
+
+    .navbar,
+    .sidebar,
+    nav {
+      display: none !important;
+    }
+  }
+
+  @page {
+    margin: 0;
+    padding: 0;
+  }
+</style>
+{% endblock %}

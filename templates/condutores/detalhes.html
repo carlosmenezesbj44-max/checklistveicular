@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-start mb-5">
+    <div>
+      <h1 class="display-6 fw-bold mb-2">{{ condutor.nome_completo }}</h1>
+      <p class="text-muted mb-0">Detalhes do Condutor</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('listar_condutores_rota') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Voltar
+      </a>
+      <a href="{{ url_for('editar_condutor', condutor_id=condutor.id) }}" class="btn btn-gradient">
+        <i class="bi bi-pencil"></i> Editar
+      </a>
+      <button class="btn btn-danger" onclick="confirmarExclusao({{ condutor.id }})">
+        <i class="bi bi-trash"></i> Excluir
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- SIDEBAR - FOTO E INFO RÁPIDA -->
+    <div class="col-lg-3">
+      <div class="card shadow-sm">
+        {% if condutor.foto_condutor %}
+        <img src="{{ url_for('uploads', filename=condutor.foto_condutor) }}" 
+             alt="Foto de {{ condutor.nome_completo }}" class="card-img-top">
+        {% else %}
+        <div class="card-img-top-placeholder">
+          <i class="bi bi-person-fill"></i>
+        </div>
+        {% endif %}
+        <div class="card-body">
+          <div class="info-group mb-3">
+            <label class="info-label">Telefone</label>
+            <div class="info-value">
+              <a href="tel:{{ condutor.telefone }}">{{ condutor.telefone or '-' }}</a>
+            </div>
+          </div>
+          <div class="info-group mb-3">
+            <label class="info-label">E-mail</label>
+            <div class="info-value">
+              <a href="mailto:{{ condutor.email }}">{{ condutor.email or '-' }}</a>
+            </div>
+          </div>
+          {% if condutor.cnh_data_validade %}
+          <div class="alert {% if condutor.cnh_data_validade < '2025-12-19' %}alert-danger{% else %}alert-success{% endif %}">
+            <small>
+              <i class="bi bi-calendar-check"></i>
+              CNH válida até {{ condutor.cnh_data_validade }}
+            </small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="col-lg-9">
+      <!-- DADOS PESSOAIS -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-person-circle me-2"></i>Dados Pessoais</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">CPF</label>
+                <div class="info-value">{{ condutor.cpf or '-' }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">RG</label>
+                <div class="info-value">{{ condutor.rg or '-' }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">Data de Nascimento</label>
+                <div class="info-value">{{ condutor.data_nascimento or '-' }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">Endereço</label>
+                <div class="info-value">{{ condutor.endereco or '-' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFORMAÇÕES DA CNH -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-card-text me-2"></i>Carteira Nacional de Habilitação</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">Número da CNH</label>
+                <div class="info-value">{{ condutor.cnh_numero or '-' }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">Categoria</label>
+                <div class="info-value">
+                  {% if condutor.cnh_categoria %}
+                  <span class="badge bg-info">{{ condutor.cnh_categoria }}</span>
+                  {% else %}
+                  -
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">Data de Emissão</label>
+                <div class="info-value">{{ condutor.cnh_data_emissao or '-' }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">Data de Validade</label>
+                <div class="info-value">
+                  {% if condutor.cnh_data_validade %}
+                  <span class="{% if condutor.cnh_data_validade < '2025-12-19' %}text-danger fw-bold{% else %}text-success{% endif %}">
+                    {{ condutor.cnh_data_validade }}
+                  </span>
+                  {% else %}
+                  -
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXAMES -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Exames Obrigatórios</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">Exame Toxicológico</label>
+                <div class="info-value">
+                  {% if condutor.exame_toxicologico_data %}
+                  <span class="badge bg-success">{{ condutor.exame_toxicologico_data }}</span>
+                  {% else %}
+                  <span class="badge bg-secondary">Não registrado</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-group">
+                <label class="info-label">Exame Médico Periódico</label>
+                <div class="info-value">
+                  {% if condutor.exame_medico_data %}
+                  <span class="badge bg-success">{{ condutor.exame_medico_data }}</span>
+                  {% else %}
+                  <span class="badge bg-secondary">Não registrado</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OBSERVAÇÕES -->
+      {% if condutor.notas %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-chat-left-text me-2"></i>Observações</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">{{ condutor.notas }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- HISTÓRICO DE VEÍCULOS -->
+      {% if condutor.veiculos %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-car-front-fill me-2"></i>Veículos Associados</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Placa</th>
+                  <th>Modelo</th>
+                  <th>Data Início</th>
+                  <th>Data Fim</th>
+                  <th>KM Rodados</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for veiculo in condutor.veiculos %}
+                <tr>
+                  <td><strong>{{ veiculo.placa }}</strong></td>
+                  <td>{{ veiculo.modelo }}</td>
+                  <td>{{ veiculo.data_inicio or '-' }}</td>
+                  <td>{{ veiculo.data_fim or '-' }}</td>
+                  <td>{{ veiculo.km_rodados or '-' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- INFRAÇÕES -->
+      {% if condutor.infracoes %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Infrações Registradas</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Descrição</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for infracao in condutor.infracoes %}
+                <tr>
+                  <td>{{ infracao.data_infracao }}</td>
+                  <td><span class="badge bg-warning">{{ infracao.tipo }}</span></td>
+                  <td>{{ infracao.descricao }}</td>
+                  <td>{% if infracao.valor %}R$ {{ infracao.valor }}{% else %}-{% endif %}</td>
+                  <td>
+                    {% if infracao.paga %}
+                    <span class="badge bg-success">Paga</span>
+                    {% else %}
+                    <span class="badge bg-danger">Aberta</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- TREINAMENTOS -->
+      {% if condutor.treinamentos %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-book-fill me-2"></i>Treinamentos Realizados</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Certificado</th>
+                  <th>Validade</th>
+                  <th>Observações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for treina in condutor.treinamentos %}
+                <tr>
+                  <td>{{ treina.data_realizacao }}</td>
+                  <td>{{ treina.tipo_treinamento }}</td>
+                  <td>{% if treina.certificado %}<span class="badge bg-success">Sim</span>{% else %}-{% endif %}</td>
+                  <td>{{ treina.validade or '-' }}</td>
+                  <td>{{ treina.observacoes or '-' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- MULTAS E INFRAÇÕES -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-exclamation-diamond-fill me-2"></i>Multas e Infrações</h5>
+          <button type="button" class="btn btn-sm btn-gradient" data-bs-toggle="modal" data-bs-target="#modalAdicionarMulta">
+            <i class="bi bi-plus-circle"></i> Nova Multa
+          </button>
+        </div>
+        <div class="card-body">
+          {% if condutor.infracoes %}
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Descrição</th>
+                  <th>Valor</th>
+                  <th>Responsável</th>
+                  <th>Vencimento</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for multa in condutor.infracoes %}
+                <tr>
+                  <td>{{ multa.data_infracao or '-' }}</td>
+                  <td>{{ multa.tipo or '-' }}</td>
+                  <td>{{ multa.descricao or '-' }}</td>
+                  <td>{% if multa.valor %}R$ {{ "%.2f"|format(multa.valor) }}{% else %}-{% endif %}</td>
+                  <td>
+                    {% if multa.responsavel_pagamento == 'empresa' %}
+                      <span class="badge bg-primary">Empresa</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Condutor</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if multa.responsavel_pagamento == 'condutor' and multa.data_vencimento %}
+                      <span class="badge bg-info">{{ multa.data_vencimento }}</span>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if multa.pago_em %}
+                      <span class="badge bg-success">Paga em {{ multa.pago_em }}</span>
+                    {% else %}
+                      <span class="badge bg-danger">Pendente</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if not multa.pago_em %}
+                    <form method="POST" action="{{ url_for('marcar_multa_paga', condutor_id=condutor.id, infracao_id=multa.id) }}" style="display:inline;">
+                      <button type="submit" class="btn btn-sm btn-success" title="Marcar como paga">
+                        <i class="bi bi-check"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('deletar_multa', condutor_id=condutor.id, infracao_id=multa.id) }}" style="display:inline;" 
+                          onsubmit="return confirm('Tem certeza que deseja deletar esta multa?');">
+                      <button type="submit" class="btn btn-sm btn-danger" title="Deletar">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="alert alert-success mb-0">
+            <i class="bi bi-check-circle me-2"></i>
+            <strong>Sem multas registradas</strong>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- MODAL: ADICIONAR MULTA -->
+      <div class="modal fade" id="modalAdicionarMulta" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title"><i class="bi bi-exclamation-diamond me-2"></i>Registrar Nova Multa</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('adicionar_multa', condutor_id=condutor.id) }}">
+              <div class="modal-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label for="tipo" class="form-label">Tipo de Multa *</label>
+                    <input type="text" class="form-control" id="tipo" name="tipo" placeholder="Ex: Excesso de velocidade" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="data_infracao" class="form-label">Data da Infração *</label>
+                    <input type="date" class="form-control" id="data_infracao" name="data_infracao" required>
+                  </div>
+                  <div class="col-12">
+                    <label for="descricao" class="form-label">Descrição *</label>
+                    <textarea class="form-control" id="descricao" name="descricao" rows="2" required></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="valor" class="form-label">Valor</label>
+                    <div class="input-group">
+                      <span class="input-group-text">R$</span>
+                      <input type="number" class="form-control" id="valor" name="valor" placeholder="0.00" step="0.01" min="0">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="responsavel_pagamento" class="form-label">Quem Paga *</label>
+                    <select class="form-select" id="responsavel_pagamento" name="responsavel_pagamento" onchange="toggleDataVencimento()" required>
+                      <option value="condutor">Condutor</option>
+                      <option value="empresa">Empresa</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6" id="div-data-vencimento">
+                    <label for="data_vencimento" class="form-label">Data de Vencimento *</label>
+                    <input type="date" class="form-control" id="data_vencimento" name="data_vencimento">
+                    <small class="form-text text-muted">Obrigatório quando o condutor é responsável pelo pagamento</small>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-gradient">Registrar Multa</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleDataVencimento() {
+    const responsavel = document.getElementById('responsavel_pagamento').value;
+    const divVencimento = document.getElementById('div-data-vencimento');
+    const inputVencimento = document.getElementById('data_vencimento');
+    
+    if (responsavel === 'condutor') {
+      divVencimento.style.display = 'block';
+      inputVencimento.required = true;
+    } else {
+      divVencimento.style.display = 'none';
+      inputVencimento.required = false;
+      inputVencimento.value = '';
+    }
+  }
+  
+  function confirmarExclusao(condutorId) {
+    if (confirm('Tem certeza que deseja excluir este condutor? Esta ação não pode ser desfeita.')) {
+      fetch(`/api/condutores/${condutorId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Condutor excluído com sucesso!');
+          window.location.href = '{{ url_for("listar_condutores_rota") }}';
+        } else {
+          alert('Erro ao excluir condutor: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao excluir condutor');
+      });
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    toggleDataVencimento();
+  });
+</script>
+
+<style>
+  .card-img-top-placeholder {
+    height: 250px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--primary-500);
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .info-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.5rem;
+  }
+
+  .info-value {
+    font-size: 0.95rem;
+    color: var(--dark-500);
+    font-weight: 500;
+  }
+
+  .info-value a {
+    color: var(--primary-500);
+    text-decoration: none;
+  }
+
+  .info-value a:hover {
+    text-decoration: underline;
+  }
+
+  .card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  .card-header {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  body.dark-mode .card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  body.dark-mode .card-header {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border-bottom-color: #334155;
+  }
+
+  body.dark-mode .info-value {
+    color: #e2e8f0;
+  }
+
+  body.dark-mode .table {
+    color: #e2e8f0;
+    border-color: #334155;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h1 class="h3 fw-bold"><i class="bi bi-brain"></i> Inteligência de Dados</h1>
+          <p class="text-muted">Previsões e análises com Machine Learning</p>
+        </div>
+        <button class="btn btn-primary" onclick="treinarTodosModelos()">
+          <i class="bi bi-lightning"></i> Treinar Modelos
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Veículos Monitorados</h6>
+          <h3 class="text-primary">{{ veiculos|length }}</h3>
+          <small class="text-success">Com modelos treinados</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Previsões Ativas</h6>
+          <h3 class="text-info" id="totalPrevisto">0</h3>
+          <small class="text-muted">Atualizadas em tempo real</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Risco Crítico</h6>
+          <h3 class="text-danger" id="totalCritico">0</h3>
+          <small class="text-muted">Veículos alertados</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0 text-white"><i class="bi bi-graph-up"></i> Previsão de Custos (Próximo Mês)</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead>
+                <tr>
+                  <th>Veículo</th>
+                  <th>Placa</th>
+                  <th>Custo Previsto</th>
+                  <th>Confiança</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaPrevistoCustos">
+                {% for veiculo in veiculos %}
+                <tr>
+                  <td>{{ veiculo.modelo }}</td>
+                  <td><strong>{{ veiculo.placa }}</strong></td>
+                  <td id="custo-{{ veiculo.id }}">
+                    {% if veiculo.predicao_custo.sucesso %}
+                      <strong class="text-info">R$ {{ veiculo.predicao_custo.custo_previsto }}</strong>
+                    {% elif veiculo.predicao_custo.erro %}
+                      <span class="text-muted text-truncate" title="{{ veiculo.predicao_custo.erro }}">
+                        {{ veiculo.predicao_custo.erro|truncate(20) }}
+                      </span>
+                    {% else %}
+                      <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    {% endif %}
+                  </td>
+                  <td id="confianca-{{ veiculo.id }}">
+                    {% if veiculo.predicao_custo.confianca %}
+                      <span class="badge bg-success">{{ veiculo.predicao_custo.confianca }}</span>
+                    {% else %}
+                      <span class="badge bg-secondary">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="recarregarPrevisao({{ veiculo.id }})">
+                      <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0 text-white"><i class="bi bi-exclamation-triangle"></i> Avaliação de Risco de Falha</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead>
+                <tr>
+                  <th>Veículo</th>
+                  <th>Placa</th>
+                  <th>Nível de Risco</th>
+                  <th>Percentual</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaRiscoFalha">
+                {% for veiculo in veiculos %}
+                <tr id="risco-row-{{ veiculo.id }}">
+                  <td>{{ veiculo.modelo }}</td>
+                  <td><strong>{{ veiculo.placa }}</strong></td>
+                  <td id="nivel-{{ veiculo.id }}">
+                    {% if veiculo.risco_falha.sucesso %}
+                      <span class="badge bg-{{ veiculo.risco_falha.cor }}">{{ veiculo.risco_falha.nivel }}</span>
+                    {% elif veiculo.risco_falha.erro %}
+                      <span class="text-muted text-truncate" title="{{ veiculo.risco_falha.erro }}">
+                        {{ veiculo.risco_falha.erro|truncate(20) }}
+                      </span>
+                    {% else %}
+                      <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    {% endif %}
+                  </td>
+                  <td id="risco-pct-{{ veiculo.id }}">
+                    {% if veiculo.risco_falha.risco %}
+                      <div class="progress" style="width: 100px; height: 20px;">
+                        <div class="progress-bar bg-{{ veiculo.risco_falha.cor }}" 
+                             style="width: {{ veiculo.risco_falha.risco }}%; font-size: 12px;" 
+                             role="progressbar">
+                          {{ veiculo.risco_falha.risco }}%
+                        </div>
+                      </div>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="recarregarRisco({{ veiculo.id }})">
+                      <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-dark">
+          <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Recomendações Inteligentes</h5>
+        </div>
+        <div class="card-body">
+          <div id="recomendacoes">
+            <div class="text-center py-4">
+              <p class="text-muted">Carregando recomendações...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function recarregarPrevisao(veiculoId) {
+  fetch(`/api/ml/predicao-custo/${veiculoId}`)
+    .then(response => response.json())
+    .then(data => {
+      const cell = document.getElementById(`custo-${veiculoId}`);
+      if (data.sucesso) {
+        cell.innerHTML = `<strong class="text-info">R$ ${data.custo_previsto}</strong>`;
+        document.getElementById(`confianca-${veiculoId}`).innerHTML = 
+          `<span class="badge bg-success">${data.confianca}</span>`;
+      } else {
+        cell.innerHTML = `<span class="text-danger">${data.erro}</span>`;
+      }
+    })
+    .catch(error => console.error('Erro:', error));
+}
+
+function recarregarRisco(veiculoId) {
+  fetch(`/api/ml/risco-falha/${veiculoId}`)
+    .then(response => response.json())
+    .then(data => {
+      const nivelCell = document.getElementById(`nivel-${veiculoId}`);
+      const riscoCell = document.getElementById(`risco-pct-${veiculoId}`);
+      
+      if (data.sucesso) {
+        nivelCell.innerHTML = `<span class="badge bg-${data.cor}">${data.nivel}</span>`;
+        riscoCell.innerHTML = `
+          <div class="progress" style="width: 100px; height: 20px;">
+            <div class="progress-bar bg-${data.cor}" 
+                 style="width: ${data.risco}%; font-size: 12px;" 
+                 role="progressbar">
+              ${data.risco}%
+            </div>
+          </div>
+        `;
+      } else {
+        nivelCell.innerHTML = `<span class="text-danger">${data.erro}</span>`;
+      }
+    })
+    .catch(error => console.error('Erro:', error));
+}
+
+function treinarTodosModelos() {
+  const btn = event.target.closest('button');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Treinando...';
+  
+  const veiculoIds = {{ veiculos|map(attribute='id')|list|tojson }};
+  let treinados = 0;
+  
+  Promise.all(veiculoIds.map(id =>
+    fetch(`/api/ml/treinar/${id}`, { method: 'POST' })
+      .then(r => r.json())
+      .then(() => {
+        treinados++;
+        return id;
+      })
+  )).then(() => {
+    alert(`✅ Modelos treinados: ${treinados}/${veiculoIds.length}`);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-lightning"></i> Treinar Modelos';
+    location.reload();
+  }).catch(error => {
+    alert('Erro ao treinar modelos: ' + error);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-lightning"></i> Treinar Modelos';
+  });
+}
+
+function gerarRecomendacoes() {
+  let recomendacoes = [];
+  const veiculos = {{ veiculos|tojson }};
+  
+  veiculos.forEach(v => {
+    if (v.risco_falha.sucesso && v.risco_falha.nivel === 'CRÍTICO') {
+      recomendacoes.push({
+        tipo: 'danger',
+        titulo: '⚠️ Manutenção Urgente',
+        descricao: `${v.placa} (${v.modelo}) apresenta risco crítico de falha. Agenda manutenção imediatamente.`
+      });
+    }
+    if (v.predicao_custo.sucesso && v.predicao_custo.custo_previsto > 1500) {
+      recomendacoes.push({
+        tipo: 'warning',
+        titulo: '💰 Custo Elevado Previsto',
+        descricao: `${v.placa} deve custar R$ ${v.predicao_custo.custo_previsto} no próximo mês. Considere revisão preventiva.`
+      });
+    }
+  });
+  
+  if (recomendacoes.length === 0) {
+    recomendacoes.push({
+      tipo: 'success',
+      titulo: '✅ Tudo Operacional',
+      descricao: 'Nenhum alerta crítico. Continue com manutenção periódica regular.'
+    });
+  }
+  
+  const html = recomendacoes.map(r => `
+    <div class="alert alert-${r.tipo}" role="alert">
+      <strong>${r.titulo}</strong><br>
+      ${r.descricao}
+    </div>
+  `).join('');
+  
+  document.getElementById('recomendacoes').innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  gerarRecomendacoes();
+  
+  let criticos = {{ veiculos|selectattr('risco_falha.nivel', 'equalto', 'CRÍTICO')|list|length }};
+  document.getElementById('totalCritico').textContent = criticos;
+  
+  let previsto = {{ veiculos|selectattr('predicao_custo.sucesso')|list|length }};
+  document.getElementById('totalPrevisto').textContent = previsto;
+});
+</script>
+
+{% endblock %}

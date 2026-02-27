@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Notificação de Sucesso -->
+{% if request.args.get('success') %}
+<div class="success-notification-container">
+  <div class="success-notification fade-in">
+    <div class="success-notification-icon">
+      <i class="bi bi-check-circle-fill"></i>
+    </div>
+    <div class="success-notification-content">
+      <h6 class="success-notification-title">Operação Realizada!</h6>
+      <p class="success-notification-text">{{ request.args.get('success') }}</p>
+    </div>
+    <button class="success-notification-close" onclick="this.parentElement.parentElement.remove()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<div class="container-fluid">
+  <div class="row mb-3">
+     <div class="col-12">
+       <div class="d-flex justify-content-between align-items-center">
+         <div>
+           <h4 style="margin: 0; font-weight: 600;"><i class="bi bi-tools"></i> Manutenções de Veículos</h4>
+           <small class="text-muted">Histórico de manutenções</small>
+         </div>
+         <div style="display: flex; gap: 8px;">
+           <a href="{{ url_for('manutencao_dashboard') }}" class="btn btn-info btn-sm">
+             <i class="bi bi-speedometer2"></i> Dashboard
+           </a>
+           <a href="{{ url_for('historico') }}" class="btn btn-primary btn-sm">
+             <i class="bi bi-plus-circle"></i> Nova
+           </a>
+         </div>
+       </div>
+     </div>
+   </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card dark-card">
+        <div class="card-body dark-card-body">
+          {% if manutencoes %}
+            <div class="table-responsive">
+              <table class="table table-sm table-hover dark-table">
+                <thead class="dark-table-head">
+                  <tr>
+                    <th style="width: 12%;">Data</th>
+                    <th style="width: 20%;">Veículo</th>
+                    <th style="width: 22%;">Peça/Serviço</th>
+                    <th style="width: 12%;">KM</th>
+                    <th style="width: 12%;">Custo</th>
+                    <th style="width: 10%;">Status</th>
+                    <th style="width: 12%;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody class="dark-table-body">
+                  {% for m in manutencoes %}
+                  <tr class="dark-table-row">
+                    <td><small>{{ m.data_manutencao }}</small></td>
+                    <td>
+                      <small><strong>{{ m.veiculo_placa }}</strong></small><br>
+                      <small class="text-muted-dark" style="font-size: 11px;">{{ m.veiculo_modelo }}</small>
+                    </td>
+                    <td><small>{{ m.nome_peca }}</small></td>
+                    <td><small>{{ m.quilometragem_atual }}</small></td>
+                    <td>
+                      {% if m.custo_total > 0 %}
+                        <small class="text-success fw-bold">R$ {{ "%.2f"|format(m.custo_total) }}</small>
+                      {% else %}
+                        <small class="text-muted-dark">-</small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if m.status == 'concluida' %}
+                        <span class="badge bg-success" style="font-size: 11px;">Concluída</span>
+                      {% else %}
+                        <span class="badge bg-warning" style="font-size: 11px;">Pendente</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div style="display: flex; gap: 4px;">
+                        {% if m.status != 'concluida' %}
+                          <button class="btn btn-xs btn-success" onclick="concluirManutencao({{ m.id }}, '{{ m.veiculo_placa }}', {{ m.custo_total or 0 }})" title="Concluir" style="padding: 3px 6px; font-size: 11px;">
+                            <i class="bi bi-check-lg"></i>
+                          </button>
+                        {% endif %}
+                        <a href="{{ url_for('manutencoes_veiculo', veiculo_id=m.veiculo_id) }}" 
+                           class="btn btn-xs btn-outline-primary" title="Ver" style="padding: 3px 6px; font-size: 11px;">
+                          <i class="bi bi-eye"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="bi bi-tools display-1 text-muted-dark"></i>
+              <h5 class="mt-3 dark-text">Nenhuma manutenção registrada</h5>
+              <p class="text-muted-dark">Comece adicionando manutenções aos veículos.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="modalConcluirManutencao" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="bi bi-check-circle"></i> Concluir Manutenção</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Deseja concluir a manutenção do veículo <strong id="veiculoPlaca"></strong>?</p>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i>
+          <strong>O que acontece ao concluir:</strong>
+          <ul class="mb-0 mt-2">
+            <li>A manutenção será marcada como <strong>Concluída</strong></li>
+            <li>O valor <strong>R$ <span id="valorManutenacao">0,00</span></strong> será movido para o histórico</li>
+            <li>Este valor será zerado do painel de custos do mês atual</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="confirmarConclusao()">
+          <i class="bi bi-check-lg"></i> Concluir Agora
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let manutencaoIdAtual = null;
+
+function concluirManutencao(manutencaoId, veiculoPlaca, valorTotal) {
+  manutencaoIdAtual = manutencaoId;
+  document.getElementById('veiculoPlaca').textContent = veiculoPlaca;
+  document.getElementById('valorManutenacao').textContent = parseFloat(valorTotal).toFixed(2);
+  
+  const modal = new bootstrap.Modal(document.getElementById('modalConcluirManutencao'));
+  modal.show();
+}
+
+function confirmarConclusao() {
+  const manutencaoId = manutencaoIdAtual;
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalConcluirManutencao'));
+  modal.hide();
+  
+  fetch(`/api/manutencao/${manutencaoId}/concluir`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Mostrar toast de sucesso
+      const toast = document.createElement('div');
+      toast.className = 'toast-notification';
+      toast.innerHTML = `
+        <div class="toast show" role="alert">
+          <div class="toast-header bg-success text-white">
+            <i class="bi bi-check-circle"></i>
+            <strong class="ms-2">Sucesso!</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+          </div>
+          <div class="toast-body">
+            ${data.message}
+          </div>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      
+      // Recarregar a página após 2 segundos
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } else {
+      alert('Erro: ' + (data.error || 'Erro ao concluir manutenção'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    alert('Erro ao concluir manutenção');
+  });
+}
+</script>
+
+<style>
+/* Notificação de Sucesso */
+.success-notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  max-width: 450px;
+}
+
+.success-notification {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  color: white;
+  animation: slideIn 0.4s ease-out;
+}
+
+.success-notification.fade-in {
+  animation: slideIn 0.4s ease-out, fadeOut 0.4s ease-in 4.6s forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+.success-notification-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.success-notification-content {
+  flex: 1;
+}
+
+.success-notification-title {
+  margin: 0 0 0.25rem 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.success-notification-text {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.95;
+}
+
+.success-notification-close {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.success-notification-close:hover {
+  opacity: 1;
+}
+
+body.dark-mode .success-notification {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.2);
+}
+
+@media (max-width: 576px) {
+  .success-notification-container {
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+
+  .success-notification {
+    padding: 0.875rem 1rem;
+  }
+}
+
+.toast-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  max-width: 400px;
+}
+
+/* Dark Mode Styles */
+.dark-card {
+  background-color: #1a1a2e !important;
+  border: 1px solid #0f3460 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark-card-body {
+  background-color: #16213e !important;
+  padding: 1.5rem !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-table {
+  background-color: #16213e !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-table thead.dark-table-head {
+  background-color: #0f3460 !important;
+  border-bottom: 2px solid #0a1f35 !important;
+}
+
+.dark-table thead.dark-table-head th {
+  color: #00d4ff !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.5px !important;
+  border: none !important;
+  padding: 0.5rem 0.75rem !important;
+  background-color: #0f3460 !important;
+  white-space: nowrap;
+}
+
+.dark-table tbody.dark-table-body tr.dark-table-row {
+  background-color: #16213e !important;
+  border-bottom: 1px solid #0f3460 !important;
+  transition: all 0.3s ease !important;
+}
+
+.dark-table tbody.dark-table-body tr.dark-table-row:hover {
+  background-color: #1e2d4a !important;
+  border-left: 3px solid #00d4ff !important;
+}
+
+.dark-table tbody.dark-table-body td {
+  color: #e0e0e0 !important;
+  border: none !important;
+  padding: 0.5rem 0.75rem !important;
+  vertical-align: middle !important;
+  background-color: #16213e !important;
+  font-size: 0.9rem;
+}
+
+.dark-table tbody.dark-table-body strong {
+  color: #00d4ff !important;
+  font-weight: 600 !important;
+}
+
+.text-muted-dark {
+  color: #9ca3af !important;
+}
+
+.dark-text {
+  color: #e0e0e0 !important;
+}
+
+/* Remove button shadows */
+button,
+button.btn,
+a.btn,
+input.btn {
+  box-shadow: none !important;
+  filter: drop-shadow(none) !important;
+}
+
+.btn {
+  box-shadow: none !important;
+  filter: drop-shadow(none) !important;
+}
+
+.btn:hover {
+  box-shadow: none !important;
+  filter: drop-shadow(none) !important;
+}
+
+.btn:active,
+.btn.active {
+  box-shadow: none !important;
+  filter: drop-shadow(none) !important;
+}
+
+.btn:focus {
+  box-shadow: none !important;
+  filter: drop-shadow(none) !important;
+  outline: none !important;
+}
+
+.btn-success {
+  box-shadow: none !important;
+}
+
+.btn-primary {
+  box-shadow: none !important;
+}
+
+.btn-info {
+  box-shadow: none !important;
+}
+
+.btn-sm {
+  box-shadow: none !important;
+}
+
+/* Badge colors for dark mode */
+.dark-table .badge {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.65rem;
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dark-table thead.dark-table-head th {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .dark-table tbody.dark-table-body td {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* Scrollbar styling for dark mode */
+.table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #16213e;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #0f3460;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #00d4ff;
+}
+</style>
+{% endblock %}

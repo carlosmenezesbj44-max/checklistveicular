@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Checklist Veicular</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
+  <meta name="theme-color" content="#0d47a1">
+  <meta name="description" content="VIP Checklist - Gestão Inteligente de Frotas">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VIP Checklist">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230d47a1' width='192' height='192'/><text x='50%' y='50%' font-size='80' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'>VC</text></svg>">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/compact-layout.css') }}">
+</head>
+<body>
+  <div class="d-flex {% if not show_navbar|default(True) %}no-sidebar{% endif %}">
+    {% if show_navbar|default(True) %}
+    <!-- Sidebar -->
+    <nav id="mainNavbar" class="sidebar-vertical bg-gradient-primary navbar-dark">
+      <!-- Logo -->
+      <div class="sidebar-header">
+        <a class="navbar-brand d-flex align-items-center gap-2 flex-column" href="{{ url_for('dashboard') }}">
+          <div class="brand-icon-circle">
+            <div class="brand-icon-box">
+              <i class="bi bi-check2-square"></i>
+            </div>
+          </div>
+          <div class="brand-content">
+            <span class="brand-text">VIP CHECKLIST</span>
+            <span class="brand-subtext">Gestão Frotas</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Menu Principal -->
+      <ul class="navbar-nav flex-column nav-links-custom">
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+            <i class="bi bi-bar-chart-fill"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint=='cadastrar_veiculo' %}active{% endif %}" href="{{ url_for('cadastrar_veiculo') }}">
+            <i class="bi bi-truck"></i>
+            <span>Cadastrar Veículo</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint=='veiculos_cadastrados' %}active{% endif %}" href="{{ url_for('veiculos_cadastrados') }}">
+            <i class="bi bi-list-ul"></i>
+            <span>Veículos Cadastrados</span>
+          </a>
+        </li>
+        {% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <li class="nav-item dropdown">
+          <a class="nav-link {% if request.endpoint in ['manutencao', 'manutencao_pendentes'] %}active{% endif %}" href="{{ url_for('manutencao') }}" data-bs-toggle="collapse" data-bs-target="#manutencaoSubmenu" role="button" aria-expanded="false">
+            <i class="bi bi-tools"></i>
+            <span>Manutenções</span>
+            <i class="bi bi-chevron-down ms-auto"></i>
+          </a>
+          <div class="collapse {% if request.endpoint in ['manutencao', 'manutencao_pendentes'] %}show{% endif %}" id="manutencaoSubmenu">
+            <ul class="nav flex-column ms-3">
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint=='manutencao' %}active{% endif %}" href="{{ url_for('manutencao') }}">
+                  <i class="bi bi-list-task"></i> Todas
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint=='manutencao_pendentes' %}active{% endif %}" href="{{ url_for('manutencao_pendentes') }}">
+                  <i class="bi bi-hourglass-split"></i> Pendentes
+                  <span class="badge bg-warning ms-2" id="badge-pendentes">0</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint=='combustivel' %}active{% endif %}" href="{{ url_for('combustivel') }}">
+            <i class="bi bi-fuel-pump"></i>
+            <span>Combustível</span>
+          </a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link {% if request.endpoint in ['financeiro_dashboard', 'financeiro_multas', 'financeiro_documentos', 'financeiro_abastecimento', 'financeiro_manutencoes', 'financeiro_relatorios'] %}active{% endif %}" href="{{ url_for('financeiro_dashboard') }}" data-bs-toggle="collapse" data-bs-target="#financeiroSubmenu" role="button" aria-expanded="false">
+            <i class="bi bi-cash-flow"></i>
+            <span>Financeiro</span>
+            <i class="bi bi-chevron-down ms-auto"></i>
+          </a>
+          <div class="collapse {% if request.endpoint in ['financeiro_dashboard', 'financeiro_multas', 'financeiro_documentos', 'financeiro_abastecimento', 'financeiro_manutencoes', 'financeiro_relatorios'] %}show{% endif %}" id="financeiroSubmenu">
+            <ul class="nav flex-column ms-3">
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint=='financeiro_dashboard' %}active{% endif %}" href="{{ url_for('financeiro_dashboard') }}">
+                  <i class="bi bi-graph-up-arrow"></i>
+                  <span>Dashboard</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint=='financeiro_abastecimento' %}active{% endif %}" href="{{ url_for('financeiro_abastecimento') }}">
+                  <i class="bi bi-fuel-pump"></i>
+                  <span>Abastecimento</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint=='financeiro_manutencoes' %}active{% endif %}" href="{{ url_for('financeiro_manutencoes') }}">
+                  <i class="bi bi-tools"></i>
+                  <span>Manutenções</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint=='multas_empresa' %}active{% endif %}" href="{{ url_for('multas_empresa') }}">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <span>Multas</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint=='financeiro_documentos' %}active{% endif %}" href="{{ url_for('financeiro_documentos') }}">
+                  <i class="bi bi-file-earmark-text"></i>
+                  <span>Documentos</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint=='financeiro_relatorios' %}active{% endif %}" href="{{ url_for('financeiro_relatorios') }}">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                  <span>Relatórios</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </li>
+        {% endif %}
+      </ul>
+
+      <!-- Menu Inferior (Admin/User) -->
+      <div class="sidebar-bottom">
+        <button id="themeToggle" class="btn-theme-toggle-sidebar" title="Alternar tema" onclick="toggleTheme()">
+          <i class="bi bi-moon-fill"></i>
+          <span>Tema</span>
+        </button>
+        
+        {% if current_user.is_authenticated %}
+          {% if current_user.role == 'admin' %}
+          <a class="nav-link nav-link-special" href="{{ url_for('configuracoes') }}">
+            <i class="bi bi-gear-fill"></i>
+            <span>Configurações</span>
+          </a>
+
+          {% endif %}
+          
+          <div class="sidebar-user-section">
+            <a class="nav-link user-menu-link-vertical" href="javascript:void(0);" id="userDropdown" onclick="toggleUserMenu(event)">
+              {% if current_user.profile_photo %}
+                <img src="{{ url_for('uploads', filename=current_user.profile_photo) }}" alt="{{ current_user.username }}" class="user-avatar-img">
+              {% else %}
+                <div class="user-avatar">{{ current_user.username[0].upper() }}</div>
+              {% endif %}
+              <div class="user-info-vertical">
+                <span class="user-name">{{ current_user.username }}</span>
+                {% if current_user.role == 'admin' %}
+                <span class="badge bg-danger">Admin</span>
+                {% endif %}
+              </div>
+            </a>
+            <div class="user-dropdown-menu vertical" id="userDropdownMenu">
+              <a class="user-dropdown-item" href="{{ url_for('auth.edit_profile') }}">
+                <i class="bi bi-person-circle"></i> Editar Perfil
+              </a>
+              <a class="user-dropdown-item" href="{{ url_for('auth.edit_profile') }}">
+                <i class="bi bi-key"></i> Alterar Senha
+              </a>
+              <div class="user-dropdown-divider"></div>
+              <a class="user-dropdown-item user-dropdown-danger" href="{{ url_for('auth.logout') }}">
+                <i class="bi bi-box-arrow-right"></i> Sair
+              </a>
+            </div>
+          </div>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link nav-link-login" href="{{ url_for('auth.login') }}">
+              <i class="bi bi-box-arrow-in-right"></i>
+              <span>Entrar</span>
+            </a>
+          </li>
+        {% endif %}
+      </div>
+    </nav>
+    {% endif %}
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content flex-grow-1">
+      <!-- Botão Hamburger para recolher sidebar (visível em telas <=1200px) -->
+      <nav class="main-header d-xl-none mb-3">
+        <button id="sidebarToggle" class="btn btn-outline-primary btn-sm" type="button" aria-label="Alternar menu lateral">
+          <i class="bi bi-list"></i>
+        </button>
+      </nav>
+
+  <div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ 'danger' if cat=='error' else 'success' }} alert-dismissible fade show" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <main class="container my-4">
+    {% block content %}{% endblock %}
+  </main>
+
+    <footer class="footer mt-auto py-3 bg-dark text-light">
+      <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center">
+        <small>&copy; {{ current_year }} Checklist Veicular</small>
+        <small>Versão 1.0 • Desenvolvido por Carlos</small>
+      </div>
+    </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Dark Mode Toggle
+    function initTheme() {
+      const isDark = localStorage.getItem('darkMode') === 'true';
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (isDark || (prefersDark && localStorage.getItem('darkMode') === null)) {
+        document.body.classList.add('dark-mode');
+        updateThemeIcon(true);
+      } else {
+        document.body.classList.remove('dark-mode');
+        updateThemeIcon(false);
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', isDark);
+      updateThemeIcon(isDark);
+    }
+
+    function updateThemeIcon(isDark) {
+      const icon = document.getElementById('themeToggle')?.querySelector('i');
+      if (icon) {
+        if (isDark) {
+          icon.className = 'bi bi-sun-fill';
+        } else {
+          icon.className = 'bi bi-moon-fill';
+        }
+      }
+    }
+
+    // Inicializar tema ao carregar
+    document.addEventListener('DOMContentLoaded', initTheme);
+    initTheme();
+
+    // Toggle User Dropdown Menu
+    function toggleUserMenu(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const menu = document.getElementById('userDropdownMenu');
+      if (menu) {
+        menu.classList.toggle('active');
+      }
+    }
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', function(e) {
+      const dropdown = document.querySelector('.user-dropdown-custom');
+      const menu = document.getElementById('userDropdownMenu');
+
+      if (dropdown && menu && !dropdown.contains(e.target)) {
+        menu.classList.remove('active');
+      }
+    });
+
+    // Toggle Sidebar
+    function toggleSidebar() {
+      const sidebar = document.getElementById('mainNavbar');
+      if (sidebar) {
+        sidebar.classList.toggle('sidebar-collapsed');
+      }
+    }
+
+    // Event listener para o botão hamburger
+    document.addEventListener('DOMContentLoaded', function() {
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+      }
+    });
+
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('{{ url_for("static", filename="js/service-worker.js") }}')
+        .then(registration => {
+          console.log('Service Worker registrado com sucesso:', registration);
+        })
+        .catch(error => {
+          console.log('Erro ao registrar Service Worker:', error);
+        });
+    }
+  </script>
+</body>
+</html>

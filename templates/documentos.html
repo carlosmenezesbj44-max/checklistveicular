@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Documentos - {{ veiculo.placa }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Documentos - {{ veiculo.placa }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-0">
+                <i class="bi bi-file-earmark-check"></i> Documentos do Veículo
+            </h1>
+            <p class="text-muted">{{ veiculo.modelo }} - {{ veiculo.placa }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('novo_documento', veiculo_id=veiculo.id) }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Adicionar Documento
+            </a>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    {% if alertas %}
+    <div class="row mb-4">
+        {% for alerta in alertas %}
+        <div class="col-12 mb-3">
+            <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>{{ alerta.titulo }}</strong><br>
+                    <small>{{ alerta.descricao }}</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Tabela de Documentos -->
+    {% if documentos %}
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Tipo</th>
+                    <th>Número</th>
+                    <th>Data de Emissão</th>
+                    <th>Data de Vencimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documentos %}
+                {% set data_venc = doc.data_vencimento.split('/') %}
+                {% set dias_diff = (data_venc[2] ~ '-' ~ data_venc[1] ~ '-' ~ data_venc[0])|as_datetime - now|as_datetime %}
+                <tr>
+                    <td>
+                        <strong>{{ doc.tipo_documento }}</strong>
+                        {% if doc.foto_documento %}
+                        <br><small><a href="{{ url_for('static', filename='uploads/' ~ doc.foto_documento) }}" target="_blank" class="text-muted">
+                            <i class="bi bi-image"></i> Ver foto
+                        </a></small>
+                        {% endif %}
+                    </td>
+                    <td>{{ doc.numero_documento or '-' }}</td>
+                    <td>{{ doc.data_emissao or '-' }}</td>
+                    <td>
+                        <strong>{{ doc.data_vencimento }}</strong>
+                    </td>
+                    <td>
+                        {% set dias = dias_diff.days %}
+                        {% if dias < 0 %}
+                            <span class="badge bg-danger">🔴 VENCIDO</span>
+                        {% elif dias == 0 %}
+                            <span class="badge bg-danger">🔴 VENCE HOJE</span>
+                        {% elif dias <= 15 %}
+                            <span class="badge bg-warning text-dark">🟡 VENCENDO ({{ dias }}d)</span>
+                        {% else %}
+                            <span class="badge bg-success">✅ OK</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('editar_documento', doc_id=doc.id) }}" class="btn btn-sm btn-warning" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button class="btn btn-sm btn-danger" onclick="confirmarDelecao({{ doc.id }}, '{{ doc.tipo_documento }}')" title="Deletar">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Nenhum documento cadastrado. 
+        <a href="{{ url_for('novo_documento', veiculo_id=veiculo.id) }}" class="alert-link">Adicionar documento</a>
+    </div>
+    {% endif %}
+
+    <!-- Botão de Retorno -->
+    <div class="mt-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Modal para confirmação de exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja excluir o documento <strong id="docName"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Deletar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarDelecao(docId, docName) {
+    document.getElementById('docName').textContent = docName;
+    document.getElementById('deleteForm').action = `/documentos/deletar/${docId}`;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

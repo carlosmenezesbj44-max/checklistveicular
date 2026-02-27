@@ -1,0 +1,55 @@
+=== ANÁLISE DO BANCO DE DADOS CHECKLIST VEICULAR ===
+
+TABELA: veiculos
+Colunas (11):
+  - id: INTEGER
+  - condutor: TEXT
+  - placa: TEXT
+  - modelo: TEXT
+  - data: TEXT
+  - quilometragem: TEXT
+  - observacoes: TEXT
+  - foto_carro: TEXT
+  - tipo: TEXT
+  - oleo_data: TEXT
+  - oleo_km: TEXT
+Registros: 8
+
+TABELA: itens_checklist
+Colunas (7):
+  - id: INTEGER
+  - veiculo_id: INTEGER
+  - nome_item: TEXT
+  - status: TEXT
+  - comentario: TEXT
+  - caminho_foto: TEXT
+  - caminho_thumb: TEXT
+Registros: 175
+
+TABELA: users
+Colunas (8):
+  - id: INTEGER
+  - username: TEXT
+  - password_hash: TEXT
+  - is_admin: BOOLEAN
+  - created_at: TIMESTAMP
+  - email: TEXT
+  - reset_token: TEXT
+  - reset_token_expiration: TIMESTAMP
+Registros: 9
+
+TABELA: manutencao
+Colunas (11):
+  - id: INTEGER
+  - veiculo_id: INTEGER
+  - nome_peca: TEXT
+  - data_manutencao: TEXT
+  - quilometragem_atual: TEXT
+  - vida_util_km: INTEGER
+  - proxima_manutencao_km: INTEGER
+  - valor_peca: REAL
+  - mao_de_obra: REAL
+  - observacoes: TEXT
+  - created_at: TIMESTAMP
+Registros: 0
+

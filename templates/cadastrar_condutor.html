@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="{{ url_for('static', filename='js/condutor-upload.js') }}"></script>
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="bi bi-person-badge"></i> Cadastrar Condutor
+            </h5>
+            <button type="button" class="btn btn-sm btn-light" onclick="toggleModo()">
+              <i class="bi bi-speedometer2"></i> Modo Rápido
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('cadastrar_condutor') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+
+            <!-- Dados Pessoais -->
+            <div class="section-header mb-4">
+              <h6 class="fw-bold text-success">
+                <i class="bi bi-person"></i> Dados Pessoais
+              </h6>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-person me-2"></i>Nome Completo *
+                </label>
+                <input type="text" class="form-control" id="nome" name="nome" required
+                       placeholder="Digite o nome completo">
+              </div>
+
+              <div class="col-md-6">
+                 <label class="form-label fw-semibold">
+                   <i class="bi bi-card-text me-2"></i>CPF *
+                 </label>
+                 <div class="position-relative">
+                   <input type="text" class="form-control" id="cpf" name="cpf" required
+                          placeholder="000.000.000-00" maxlength="14">
+                   <div id="cpfStatus" class="mt-2 alert d-none" role="alert"></div>
+                 </div>
+               </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-file-earmark me-2"></i>RG
+                </label>
+                <input type="text" class="form-control" id="rg" name="rg"
+                       placeholder="Digite o RG">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-calendar me-2"></i>Data de Nascimento *
+                </label>
+                <input type="date" class="form-control" id="data_nascimento" name="data_nascimento" required>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-geo-alt me-2"></i>Endereço
+                </label>
+                <input type="text" class="form-control" id="endereco" name="endereco"
+                       placeholder="Digite o endereço completo">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-telephone me-2"></i>Telefone / Celular *
+                </label>
+                <input type="tel" class="form-control" id="telefone" name="telefone" required
+                       placeholder="(00) 00000-0000" maxlength="15">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-envelope me-2"></i>E-mail *
+                </label>
+                <input type="email" class="form-control" id="email" name="email" required
+                       placeholder="exemplo@email.com">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-camera me-2"></i>Foto do Condutor
+                </label>
+                <div class="text-center">
+                  <div class="photo-upload-container" id="photoPreview">
+                    <div class="photo-placeholder">
+                      <i class="bi bi-person-circle display-4"></i>
+                      <p class="mb-0 mt-2">Clique para adicionar foto</p>
+                    </div>
+                  </div>
+                  <input type="file" class="d-none" id="foto_condutor" name="foto_condutor" accept="image/*">
+                  <button type="button" class="btn btn-outline-secondary mt-2" id="removePhoto" style="display: none;">
+                    <i class="bi bi-trash"></i> Remover foto
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Informações da CNH -->
+            <div class="section-header mb-4">
+              <h6 class="fw-bold text-success">
+                <i class="bi bi-card-checklist"></i> Informações da CNH
+              </h6>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-card-heading me-2"></i>Número da CNH *
+                </label>
+                <input type="text" class="form-control" id="numero_cnh" name="numero_cnh" required
+                       placeholder="Digite o número da CNH">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-list-check me-2"></i>Categoria *
+                </label>
+                <select class="form-select" id="categoria_cnh" name="categoria_cnh" required>
+                  <option value="">Selecione...</option>
+                  <option value="A">A - Moto</option>
+                  <option value="B">B - Carro</option>
+                  <option value="AB">AB - Carro e Moto</option>
+                  <option value="C">C - Caminhão</option>
+                  <option value="D">D - Ônibus</option>
+                  <option value="E">E - Reboque</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-calendar-event me-2"></i>Data de Emissão *
+                </label>
+                <input type="date" class="form-control" id="data_emissao_cnh" name="data_emissao_cnh" required>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-calendar-check me-2"></i>Data de Validade *
+                </label>
+                <input type="date" class="form-control" id="data_validade_cnh" name="data_validade_cnh" required>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-building me-2"></i>Órgão Emissor *
+                </label>
+                <input type="text" class="form-control" id="orgao_emissor" name="orgao_emissor" required
+                       placeholder="Ex: DETRAN-SP">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-star me-2"></i>Pontuação Atual
+                </label>
+                <input type="number" class="form-control" id="pontuacao" name="pontuacao" min="0"
+                       placeholder="Ex: 0">
+              </div>
+            </div>
+
+            <!-- Dados Profissionais -->
+            <div class="section-header mb-4">
+              <h6 class="fw-bold text-success">
+                <i class="bi bi-briefcase"></i> Dados Profissionais
+              </h6>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-hash me-2"></i>Matrícula / Código Interno
+                </label>
+                <input type="text" class="form-control" id="matricula" name="matricula"
+                       placeholder="Digite a matrícula">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-person-workspace me-2"></i>Cargo / Função
+                </label>
+                <input type="text" class="form-control" id="cargo" name="cargo"
+                       placeholder="Ex: Motorista">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-building me-2"></i>Setor / Departamento
+                </label>
+                <input type="text" class="form-control" id="setor" name="setor"
+                       placeholder="Ex: Logística">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-person-check me-2"></i>Supervisor Responsável
+                </label>
+                <input type="text" class="form-control" id="supervisor" name="supervisor"
+                       placeholder="Nome do supervisor">
+              </div>
+            </div>
+
+            <!-- Informações Adicionais -->
+            <div class="section-header mb-4">
+              <h6 class="fw-bold text-success">
+                <i class="bi bi-info-circle"></i> Informações Adicionais
+              </h6>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-file-earmark-text me-2"></i>Status do Condutor *
+                </label>
+                <select class="form-select" id="status" name="status" required>
+                  <option value="ativo">Ativo</option>
+                  <option value="afastado">Afastado</option>
+                  <option value="treinamento">Em Treinamento</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-clock me-2"></i>Disponibilidade de Horários
+                </label>
+                <input type="text" class="form-control" id="disponibilidade" name="disponibilidade"
+                       placeholder="Ex: Seg-Sex 08:00-18:00">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-file-earmark-pdf me-2"></i>Upload de Documentos
+                </label>
+                <div class="mb-2">
+                  <label class="form-label small">CNH Digitalizada</label>
+                  <input type="file" class="form-control" id="cnh_digitalizada" name="cnh_digitalizada" accept=".pdf,image/*">
+                </div>
+                <div>
+                  <label class="form-label small">Comprovante de Residência</label>
+                  <input type="file" class="form-control" id="comprovante_residencia" name="comprovante_residencia" accept=".pdf,image/*">
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-book me-2"></i>Treinamentos Realizados
+                </label>
+                <textarea class="form-control" id="treinamentos" name="treinamentos" rows="3"
+                          placeholder="Ex: Direção defensiva, Transporte de cargas perigosas"></textarea>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-exclamation-triangle me-2"></i>Histórico de Ocorrências
+                </label>
+                <textarea class="form-control" id="ocorrencias" name="ocorrencias" rows="3"
+                          placeholder="Ex: Multas, advertências, acidentes"></textarea>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <i class="bi bi-chat-text me-2"></i>Observações
+                </label>
+                <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
+                          placeholder="Informações adicionais sobre o condutor..."></textarea>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Cancelar
+              </a>
+              <button type="submit" class="btn btn-lg btn-success shadow" id="submitBtn">
+                <i class="bi bi-save"></i> Cadastrar Condutor
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .card {
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    border-radius: 20px 20px 0 0;
+  }
+
+  .section-header {
+    padding: 12px;
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 4px solid #10b981;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  body.dark-mode .form-label {
+    color: #e2e8f0;
+  }
+
+  /* Estilos para upload de foto */
+  .photo-upload-container {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  body.dark-mode .photo-upload-container {
+    border-color: #475569;
+  }
+
+  .photo-upload-container:hover {
+    border-color: #10b981;
+    transform: scale(1.02);
+  }
+
+  .photo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748b;
+  }
+
+  body.dark-mode .photo-placeholder {
+    color: #94a3b8;
+  }
+
+  .photo-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .photo-placeholder p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+
+  .photo-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+
+  .photo-preview.show {
+    display: block;
+  }
+
+  .photo-placeholder.show {
+    display: none;
+  }
+</style>
+
+<script src="{{ url_for('static', filename='js/condutor-upload.js') }}"></script>
+<script>
+  // Validação em tempo real do CPF
+  const cpfInput = document.getElementById('cpf');
+  const cpfStatus = document.getElementById('cpfStatus');
+  const submitBtn = document.getElementById('submitBtn');
+  const form = document.querySelector('form');
+  let cpfValidationTimeout;
+  let cpfValido = false;
+
+  cpfInput.addEventListener('input', function() {
+    const cpf = this.value.trim();
+    
+    // Limpar timeout anterior
+    clearTimeout(cpfValidationTimeout);
+    cpfStatus.classList.add('d-none');
+    cpfValido = false;
+    updateSubmitBtn();
+    
+    // Se o campo está vazio, não faz nada
+    if (!cpf) return;
+    
+    // Esperar 500ms após o usuário parar de digitar
+    cpfValidationTimeout = setTimeout(function() {
+      verificarCPF(cpf);
+    }, 500);
+  });
+
+  function verificarCPF(cpf) {
+    // Limpar espaços e caracteres especiais para consulta
+    const cpfLimpo = cpf.replace(/\D/g, '');
+    
+    // Validação básica de CPF (11 dígitos)
+    if (cpfLimpo.length !== 11) {
+      cpfStatus.classList.add('d-none');
+      cpfValido = false;
+      updateSubmitBtn();
+      return;
+    }
+    
+    // Fazer requisição AJAX
+    fetch(`/api/verificar-cpf?cpf=${encodeURIComponent(cpf)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.existe) {
+          // CPF já existe
+          cpfStatus.textContent = '⚠️ ' + data.mensagem;
+          cpfStatus.classList.remove('d-none', 'alert-success');
+          cpfStatus.classList.add('alert-warning');
+          cpfInput.classList.add('is-invalid');
+          cpfInput.classList.remove('is-valid');
+          cpfValido = false;
+        } else {
+          // CPF disponível
+          cpfStatus.textContent = '✓ CPF disponível';
+          cpfStatus.classList.remove('d-none', 'alert-warning');
+          cpfStatus.classList.add('alert-success');
+          cpfInput.classList.add('is-valid');
+          cpfInput.classList.remove('is-invalid');
+          cpfValido = true;
+        }
+        updateSubmitBtn();
+      })
+      .catch(error => {
+        console.error('Erro ao verificar CPF:', error);
+        cpfStatus.textContent = '❌ Erro ao verificar CPF';
+        cpfStatus.classList.remove('d-none');
+        cpfStatus.classList.add('alert-danger');
+        cpfValido = false;
+        updateSubmitBtn();
+      });
+  }
+
+  function updateSubmitBtn() {
+    const cpf = cpfInput.value.trim();
+    const cpfLimpo = cpf.replace(/\D/g, '');
+    
+    // Desabilitar botão se CPF existe ou não foi validado
+    if (cpfLimpo.length === 11 && !cpfValido) {
+      submitBtn.disabled = true;
+      submitBtn.title = 'Verifique o CPF antes de salvar';
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.title = '';
+    }
+  }
+
+  // Impedir submissão se CPF é inválido
+  form.addEventListener('submit', function(e) {
+    const cpf = cpfInput.value.trim();
+    const cpfLimpo = cpf.replace(/\D/g, '');
+    
+    if (cpfLimpo.length === 11 && !cpfValido) {
+      e.preventDefault();
+      cpfStatus.textContent = '❌ Por favor, verifique o CPF antes de salvar';
+      cpfStatus.classList.remove('d-none', 'alert-success', 'alert-warning');
+      cpfStatus.classList.add('alert-danger');
+      return false;
+    }
+  });
+
+  function toggleModo() {
+    alert('Modo Rápido: Funcionalidade em desenvolvimento!');
+  }
+</script>
+{% endblock %}
