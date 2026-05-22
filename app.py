@@ -506,6 +506,7 @@ def dashboard():
         ORDER BY v.data DESC
         LIMIT 5
     """)
+    ultimos_checklists = [dict(r) for r in cur.fetchall()]
     has_checklist_data = bool(meses_data)
     has_critical_data = total_criticos > 0
     has_combustivel_data = total_combustiveis > 0
