@@ -144,7 +144,7 @@
                 <a href="{{ url_for('backup') }}" class="btn btn-primary btn-sm">
                   <i class="bi bi-download"></i> Fazer Backup
                 </a>
-                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#restoreBackupModal">
+                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#restoreBackupModal" onclick="abrirRestauracaoBackup()">
                   <i class="bi bi-upload"></i> Restaurar Backup
                 </button>
               </div>
@@ -454,6 +454,39 @@
       </div>
     </div>
   </div>
+
+  {% if current_user.is_admin %}
+  <!-- Modal Restaurar Backup -->
+  <div class="modal fade" id="restoreBackupModal" tabindex="-1" aria-labelledby="restoreBackupLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title" id="restoreBackupLabel">
+            <i class="bi bi-upload"></i> Restaurar Backup
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <form method="POST" action="{{ url_for('restore') }}" enctype="multipart/form-data">
+          <div class="modal-body">
+            <div class="alert alert-warning" role="alert">
+              <strong>Atenção!</strong> A restauração sobrescreverá os dados atuais. Um backup do banco atual será criado automaticamente.
+            </div>
+            <div class="mb-3">
+              <label for="backup_file_config" class="form-label">Selecione o arquivo de backup (.zip)</label>
+              <input type="file" class="form-control" id="backup_file_config" name="backup_file" accept=".zip" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-warning">
+              <i class="bi bi-check-circle"></i> Restaurar Backup
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 <style>
@@ -495,10 +528,45 @@
 </style>
 
 <script>
+  function abrirRestauracaoBackup() {
+    // Fluxo robusto: abre seletor nativo e envia direto para restore
+    const picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = '.zip';
+
+    picker.addEventListener('change', function () {
+      if (!picker.files || !picker.files.length) return;
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = "{{ url_for('restore') }}";
+      form.enctype = 'multipart/form-data';
+
+      const csrfMeta = document.querySelector('meta[name=\"csrf-token\"]');
+      const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+      if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+      }
+
+      picker.name = 'backup_file';
+      form.appendChild(picker);
+      document.body.appendChild(form);
+      form.submit();
+    });
+
+    picker.click();
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     // Verificar status do Twilio se houver credenciais
-    const accountSid = document.getElementById('twilio_account_sid').value;
-    const authToken = document.getElementById('twilio_auth_token').value;
+    const accountSidEl = document.getElementById('twilio_account_sid');
+    const authTokenEl = document.getElementById('twilio_auth_token');
+    const accountSid = accountSidEl ? accountSidEl.value : '';
+    const authToken = authTokenEl ? authTokenEl.value : '';
     
     if (accountSid && authToken) {
       verificarStatusTwilio();
