@@ -502,8 +502,41 @@
 
     .header-actions {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .quick-actions-dropdown .dropdown-menu {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+      padding: 8px;
+    }
+
+    .quick-actions-dropdown .dropdown-item {
+      border-radius: 8px;
+      font-size: 13px;
+      padding: 8px 12px;
+    }
+
+    .quick-actions-dropdown .dropdown-item i {
+      width: 18px;
+      margin-right: 6px;
+    }
+
+    .chart-empty-state {
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    .chart-empty-state .empty-state {
+      padding: 24px;
     }
 
     .header-actions .btn {
@@ -716,41 +749,36 @@
         <p class="text-muted mb-0">Gerencie sua frota de veículos com visibilidade completa</p>
       </div>
       <div class="header-actions">
-        {% if has_permission('veiculos_excluir_placa') %}
-        <button type="button" class="botao-moderno" style="background-color:#7c3aed;" onclick="abrirExcluirPorPlaca()">
-          <i class="bi bi-trash"></i> Excluir por Placa
-        </button>
-        {% endif %}
-        {% if has_permission('sistema_limpar_orfaos') %}
-        <button type="button" class="botao-moderno" style="background-color:#0ea5e9;" onclick="limparOrfaos()">
-          <i class="bi bi-broom"></i> Limpar Órfãos
-        </button>
-        {% endif %}
         <a href="{{ url_for('index') }}" class="botao-moderno">
           <i class="bi bi-plus-circle"></i> Novo Checklist
+        </a>
+        <a href="{{ url_for('historico') }}" class="botao-moderno">
+          <i class="bi bi-search"></i> Buscar
         </a>
         {% if current_user.is_admin %}
         <a href="{{ url_for('novo_combustivel') }}" class="botao-moderno">
           <i class="bi bi-fuel-pump"></i> Abastecimento
         </a>
         {% endif %}
-        <a href="{{ url_for('historico') }}" class="botao-moderno">
-          <i class="bi bi-search"></i> Buscar
-        </a>
-        {% if current_user.is_admin %}
-        <a href="{{ url_for('performance') }}" class="botao-moderno" style="background-color: #e74c3c;">
-          <i class="bi bi-speedometer2"></i> Performance
-        </a>
-        <a href="{{ url_for('cadastrar_condutor') }}" class="botao-moderno" style="background-color: #16a34a;">
-          <i class="bi bi-person-badge"></i> Condutor
-        </a>
-        <a href="{{ url_for('listar_condutores_rota') }}" class="botao-moderno" style="background-color: #16a34a;">
-          <i class="bi bi-people"></i> Lista Condutores
-        </a>
-        <a href="{{ url_for('multas_empresa') }}" class="botao-moderno" style="background-color: #dc2626;">
-          <i class="bi bi-exclamation-diamond-fill"></i> Multas
-        </a>
-        {% endif %}
+        <div class="dropdown quick-actions-dropdown">
+          <button class="botao-moderno dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color:#475569;">
+            <i class="bi bi-grid-3x3-gap"></i> Mais ações
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            {% if current_user.is_admin %}
+            <li><a class="dropdown-item" href="{{ url_for('performance') }}"><i class="bi bi-speedometer2"></i> Performance</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('cadastrar_condutor') }}"><i class="bi bi-person-badge"></i> Condutor</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('listar_condutores_rota') }}"><i class="bi bi-people"></i> Lista Condutores</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('multas_empresa') }}"><i class="bi bi-exclamation-diamond-fill"></i> Multas</a></li>
+            {% endif %}
+            {% if has_permission('veiculos_excluir_placa') %}
+            <li><button type="button" class="dropdown-item text-danger" onclick="abrirExcluirPorPlaca()"><i class="bi bi-trash"></i> Excluir por Placa</button></li>
+            {% endif %}
+            {% if has_permission('sistema_limpar_orfaos') %}
+            <li><button type="button" class="dropdown-item" onclick="limparOrfaos()"><i class="bi bi-broom"></i> Limpar Órfãos</button></li>
+            {% endif %}
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -884,6 +912,36 @@
     </div>
   </div>
 
+  <!-- Resumo Operacional -->
+  <div class="mb-4">
+    <div class="section-header">
+      <i class="bi bi-activity"></i>
+      <h3>Resumo Operacional</h3>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <i class="bi bi-truck stat-icon"></i>
+        <div class="stat-value">{{ total_veiculos }}</div>
+        <div class="stat-label">Veículos na frota</div>
+      </div>
+      <div class="stat-box">
+        <i class="bi bi-exclamation-triangle stat-icon"></i>
+        <div class="stat-value">{{ total_criticos }}</div>
+        <div class="stat-label">Itens críticos</div>
+      </div>
+      <div class="stat-box">
+        <i class="bi bi-tools stat-icon"></i>
+        <div class="stat-value">{{ manutencoes_pendentes }}</div>
+        <div class="stat-label">Manutenções pendentes</div>
+      </div>
+      <div class="stat-box">
+        <i class="bi bi-cash-coin stat-icon"></i>
+        <div class="stat-value">R$ {{ "%.2f"|format(custo_total) }}</div>
+        <div class="stat-label">Custo total registrado</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Custos Section - Admin Only -->
   {% if current_user.is_authenticated and current_user.role == 'admin' %}
   <div class="row g-3 mb-4">
@@ -931,9 +989,18 @@
             <i class="bi bi-graph-up"></i>
             <h3>Checklists por Mês</h3>
           </div>
+          {% if has_checklist_data %}
           <div class="chart-container">
             <canvas id="graficoMeses"></canvas>
           </div>
+          {% else %}
+          <div class="chart-empty-state">
+            <div class="empty-state">
+              <i class="bi bi-graph-up"></i>
+              <p>Nenhum checklist registrado para exibir evolução mensal.</p>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -944,9 +1011,18 @@
             <i class="bi bi-pie-chart"></i>
             <h3>Distribuição Frota</h3>
           </div>
+          {% if total_veiculos > 0 %}
           <div class="chart-container">
             <canvas id="graficoTipos"></canvas>
           </div>
+          {% else %}
+          <div class="chart-empty-state">
+            <div class="empty-state">
+              <i class="bi bi-pie-chart"></i>
+              <p>Cadastre veículos para visualizar a distribuição da frota.</p>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -961,9 +1037,18 @@
             <i class="bi bi-exclamation-triangle"></i>
             <h3>Top 5 Itens Críticos</h3>
           </div>
+          {% if has_critical_data %}
           <div class="chart-container">
             <canvas id="graficoCriticos"></canvas>
           </div>
+          {% else %}
+          <div class="chart-empty-state">
+            <div class="empty-state">
+              <i class="bi bi-check-circle"></i>
+              <p>Nenhum item crítico encontrado no momento.</p>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -1297,6 +1382,7 @@ function limparOrfaos() {
     danger: '#dc3545'
   };
 
+  {% if total_veiculos > 0 %}
   new Chart(document.getElementById('graficoTipos'), {
     type: 'doughnut',
     data: {
@@ -1316,7 +1402,9 @@ function limparOrfaos() {
       }
     }
   });
+  {% endif %}
 
+  {% if has_checklist_data %}
   const ctxMeses = document.getElementById('graficoMeses').getContext('2d');
   const gradMeses = ctxMeses.createLinearGradient(0, 0, 0, 300);
   gradMeses.addColorStop(0, 'rgba(13, 110, 253, 0.3)');
@@ -1345,7 +1433,9 @@ function limparOrfaos() {
       plugins: { legend: { labels: { font: { size: 12 } } } }
     }
   });
+  {% endif %}
 
+  {% if has_critical_data %}
   new Chart(document.getElementById('graficoCriticos'), {
     type: 'bar',
     data: {
@@ -1365,6 +1455,7 @@ function limparOrfaos() {
       plugins: { legend: { labels: { font: { size: 12 } } } }
     }
   });
+  {% endif %}
 
   fetch('/api/analytics/checklists')
     .then(response => response.json())

@@ -131,9 +131,21 @@
                 <div class="col-md-6">
                   <label class="form-label fw-semibold">
                     <i class="bi bi-car-front text-muted me-1"></i>Modelo
+                    {% if is_admin %}
+                    <span class="badge bg-warning text-dark ms-1">Admin</span>
+                    {% endif %}
                   </label>
-                  <input type="text" class="form-control" name="modelo" value="{{ reg.modelo or '' }}" disabled>
-                  <small class="text-muted"><i class="bi bi-info-circle"></i> Não pode ser alterado</small>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="modelo"
+                    value="{{ reg.modelo or '' }}"
+                    {% if not is_admin %}readonly{% endif %}>
+                  {% if is_admin %}
+                  <small class="text-success"><i class="bi bi-shield-check"></i> Você pode alterar o modelo</small>
+                  {% else %}
+                  <small class="text-muted"><i class="bi bi-lock"></i> Apenas admin pode alterar</small>
+                  {% endif %}
                 </div>
                 <div class="col-md-6">
                   <label class="form-label fw-semibold">

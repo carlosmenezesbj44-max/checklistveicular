@@ -1,45 +1,44 @@
+function normalizeItemName(text) {
+  return (text || "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 function getIconForItem(item) {
-  const iconMap = {
-    "Farol Esq.": "bi-lightbulb",
-    "Farol Dir.": "bi-lightbulb",
-    "Pisca Esq.": "bi-exclamation-triangle",
-    "Pisca Dir.": "bi-exclamation-triangle",
-    "Lanterna Esq.": "bi-brightness-low",
-    "Lanterna Dir.": "bi-brightness-low",
-    "Luz de ré": "bi-arrow-counterclockwise",
-    "Luz de freio": "bi-hand-stop-fill",
-    "Retrovisor Esq.": "bi-mirror",
-    "Retrovisor Dir.": "bi-mirror",
-    "Pneus Dianteiros": "bi-circle",
-    "Pneus Traseiros": "bi-circle",
-    "Estepe": "bi-circle-dotted",
-    "Triângulo": "bi-exclamation-lg",
-    "Macaco": "bi-tools",
-    "Chave de roda": "bi-tools",
-    "Limpador de para-brisa": "bi-wind",
-    "Vidro Dianteiro": "bi-window",
-    "Vidro Traseiro": "bi-window",
-    "Lataria": "bi-box",
-    "Interior": "bi-chair",
-    "Fluido de freio": "bi-droplet-fill",
-    "Água do Radiador": "bi-droplet",
-    "Pneu Dianteiro": "bi-circle",
-    "Pneu Traseiro": "bi-circle",
-    "Corrente": "bi-link-45deg",
-    "Manete de Câmbio": "bi-lever",
-    "Manopla Acelerador": "bi-controller",
-    "Freio Dianteiro": "bi-hand-stop-fill",
-    "Freio Traseiro": "bi-hand-stop-fill",
-    "Latarias Laterais": "bi-box",
-    "Assento": "bi-chair",
-    "Capacete (visual)": "bi-shield-check",
-    "Farol": "bi-lightbulb",
-    "Lanterna": "bi-brightness-low",
-    "Espelho Retrovisor": "bi-mirror",
-    "Vidros": "bi-window",
-    "Água do Carro": "bi-droplet",
-    "Sistema de Arrefecimento": "bi-thermometer-half"
-  };
-  
-  return iconMap[item] || "bi-gear";
+  const normalized = normalizeItemName(item);
+
+  // Regras em ordem de prioridade para manter o icone semantico por item.
+  const rules = [
+    { test: /(farol|luz alta|luz baixa)/, icon: "bi-lightbulb-fill" },
+    { test: /(pisca|seta)/, icon: "bi-arrow-left-right" },
+    { test: /(lanterna|luz de re)/, icon: "bi-brightness-low-fill" },
+    { test: /(luz de freio|freio dianteiro|freio traseiro)/, icon: "bi-stop-circle-fill" },
+    { test: /(retrovisor|espelho)/, icon: "bi-eye-fill" },
+    { test: /(pneu|pneus)/, icon: "bi-circle-fill" },
+    { test: /(estepe)/, icon: "bi-life-preserver" },
+    { test: /(triangulo)/, icon: "bi-exclamation-triangle-fill" },
+    { test: /(macaco)/, icon: "bi-tools" },
+    { test: /(chave de roda)/, icon: "bi-wrench" },
+    { test: /(limpador|para-brisa|parabrisa)/, icon: "bi-wind" },
+    { test: /(vidro|vidros)/, icon: "bi-window" },
+    { test: /(lataria)/, icon: "bi-car-front-fill" },
+    { test: /(interior|assento)/, icon: "bi-person-square" },
+    { test: /(fluido de freio)/, icon: "bi-droplet-fill" },
+    { test: /(agua|radiador|arrefecimento)/, icon: "bi-thermometer-half" },
+    { test: /(oleo)/, icon: "bi-droplet-half" },
+    { test: /(corrente)/, icon: "bi-link-45deg" },
+    { test: /(manete|cambio)/, icon: "bi-gear-wide-connected" },
+    { test: /(manopla|acelerador)/, icon: "bi-speedometer2" },
+    { test: /(capacete)/, icon: "bi-shield-fill-check" },
+    { test: /(luz)/, icon: "bi-lightbulb-fill" }
+  ];
+
+  for (const rule of rules) {
+    if (rule.test.test(normalized)) return rule.icon;
+  }
+
+  return "bi-gear-fill";
 }

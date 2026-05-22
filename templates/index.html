@@ -80,6 +80,68 @@
             </div>
         </div>
 
+        <!-- Seção: Combustível -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light border-bottom">
+                <h5 class="mb-0"><i class="bi bi-fuel-pump me-2"></i>Combustível e Nível do Tanque</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-lg-7">
+                        <label class="form-label fw-600">Combustíveis do veículo</label>
+                        <div class="fuel-options">
+                            <label class="fuel-option">
+                                <input type="checkbox" name="combustivel_tipo" value="Gasolina" checked>
+                                <span>Gasolina</span>
+                            </label>
+                            <label class="fuel-option">
+                                <input type="checkbox" name="combustivel_tipo" value="Etanol">
+                                <span>Etanol</span>
+                            </label>
+                            <label class="fuel-option">
+                                <input type="checkbox" name="combustivel_tipo" value="Flex">
+                                <span>Flex</span>
+                            </label>
+                            <label class="fuel-option">
+                                <input type="checkbox" name="combustivel_tipo" value="Diesel">
+                                <span>Diesel</span>
+                            </label>
+                            <label class="fuel-option">
+                                <input type="checkbox" name="combustivel_tipo" value="GNV">
+                                <span>GNV</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="fuel-gauge-card">
+                            <div class="fuel-gauge-header">
+                                <span class="small text-muted">Nível do tanque</span>
+                                <strong id="fuelLevelValue">50%</strong>
+                            </div>
+                            <div class="fuel-gauge" id="fuelGauge">
+                                <div class="fuel-gauge-arc">
+                                    <span class="fuel-marker fuel-marker-e">E</span>
+                                    <span class="fuel-marker fuel-marker-f">F</span>
+                                    <span class="fuel-needle" id="fuelNeedle"></span>
+                                </div>
+                            </div>
+                            <input
+                                type="range"
+                                class="form-range mt-2"
+                                id="fuelLevelRange"
+                                name="combustivel_nivel"
+                                min="0"
+                                max="100"
+                                step="5"
+                                value="50"
+                                aria-label="Nível do tanque"
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Seção: Documentos -->
         <div class="card mb-4 shadow-sm">
             <div class="card-header bg-light border-bottom">
@@ -121,6 +183,157 @@
                 <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Itens do Checklist</h5>
             </div>
             <div class="card-body">
+                <div class="checklist-scoreboard mb-4">
+                    <div class="score-main">
+                        <div class="score-ring" id="scoreRing">
+                            <span id="scoreValue">0</span>
+                        </div>
+                        <div>
+                            <p class="score-label mb-1">Saúde do Checklist</p>
+                            <h6 class="mb-1" id="riskLabel">Risco Alto</h6>
+                            <small class="text-muted">Com peso maior para itens críticos de segurança.</small>
+                        </div>
+                    </div>
+                    <div class="score-stats">
+                        <div class="score-stat ok">
+                            <strong id="countOk">0</strong>
+                            <span>OK</span>
+                        </div>
+                        <div class="score-stat warning">
+                            <strong id="countAttention">0</strong>
+                            <span>Atenção</span>
+                        </div>
+                        <div class="score-stat critical">
+                            <strong id="countCritical">0</strong>
+                            <span>Crítico</span>
+                        </div>
+                    </div>
+                    <div class="progress score-progress" role="progressbar" aria-label="Pontuação do checklist">
+                        <div id="scoreProgressBar" class="progress-bar bg-danger" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="zones-toolbar mb-3">
+                    <div class="zones-map-panel">
+                        <div class="zones-title">
+                            <i class="bi bi-crosshair2"></i>
+                            <span>Pontos do veículo</span>
+                        </div>
+                        <div class="vehicle-map" id="vehicleZoneMap" aria-label="Mapa do veículo">
+                            <div class="vehicle-map-fallback" aria-hidden="true">
+                                <div class="vm-car-shell"></div>
+                                <div class="vm-car-cabin"></div>
+                                <div class="vm-car-accent vm-front"></div>
+                                <div class="vm-car-accent vm-rear"></div>
+                                <div class="vm-wheel vm-wheel-fl"></div>
+                                <div class="vm-wheel vm-wheel-fr"></div>
+                                <div class="vm-wheel vm-wheel-rl"></div>
+                                <div class="vm-wheel vm-wheel-rr"></div>
+                            </div>
+                            <img
+                                class="vehicle-map-photo"
+                                src="{{ url_for('static', filename='images/vehicle-map-car-cropped.png') }}"
+                                alt=""
+                                aria-hidden="true"
+                                loading="lazy"
+                            >
+
+                            <button
+                                type="button"
+                                class="zone-map-point active"
+                                data-zone="todos"
+                                data-tooltip="Todos os pontos"
+                                title="Todos os pontos"
+                                aria-label="Todos os pontos"
+                                style="--x: 78%; --y: 17%;"
+                            >
+                                <i class="bi bi-bullseye" aria-hidden="true"></i>
+                                <span class="visually-hidden">Todos os pontos</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="zone-map-point"
+                                data-zone="dianteira"
+                                data-tooltip="Dianteira"
+                                title="Dianteira"
+                                aria-label="Dianteira"
+                                style="--x: 50%; --y: 11%;"
+                            >
+                                <i class="bi bi-arrow-up-circle" aria-hidden="true"></i>
+                                <span class="visually-hidden">Dianteira</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="zone-map-point"
+                                data-zone="traseira"
+                                data-tooltip="Traseira"
+                                title="Traseira"
+                                aria-label="Traseira"
+                                style="--x: 50%; --y: 88%;"
+                            >
+                                <i class="bi bi-arrow-down-circle" aria-hidden="true"></i>
+                                <span class="visually-hidden">Traseira</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="zone-map-point"
+                                data-zone="lateral"
+                                data-tooltip="Lateral"
+                                title="Lateral"
+                                aria-label="Lateral"
+                                style="--x: 67%; --y: 52%;"
+                            >
+                                <i class="bi bi-arrows-expand" aria-hidden="true"></i>
+                                <span class="visually-hidden">Lateral</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="zone-map-point"
+                                data-zone="cabine"
+                                data-tooltip="Cabine"
+                                title="Cabine"
+                                aria-label="Cabine"
+                                style="--x: 33%; --y: 50%;"
+                            >
+                                <i class="bi bi-person-square" aria-hidden="true"></i>
+                                <span class="visually-hidden">Cabine</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="zone-map-point"
+                                data-zone="mecanica"
+                                data-tooltip="Mecânica"
+                                title="Mecânica"
+                                aria-label="Mecânica"
+                                style="--x: 33%; --y: 31%;"
+                            >
+                                <i class="bi bi-gear" aria-hidden="true"></i>
+                                <span class="visually-hidden">Mecânica</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="zone-map-point"
+                                data-zone="seguranca"
+                                data-tooltip="Segurança"
+                                title="Segurança"
+                                aria-label="Segurança"
+                                style="--x: 33%; --y: 73%;"
+                            >
+                                <i class="bi bi-shield-check" aria-hidden="true"></i>
+                                <span class="visually-hidden">Segurança</span>
+                            </button>
+                        </div>
+                        <small class="vehicle-map-caption">Clique no mapa para filtrar os itens por área.</small>
+                    </div>
+                    <div class="zone-filters" id="zoneFilters">
+                        <button type="button" class="zone-filter-btn active" data-zone="todos">Todos</button>
+                        <button type="button" class="zone-filter-btn" data-zone="dianteira">Dianteira</button>
+                        <button type="button" class="zone-filter-btn" data-zone="traseira">Traseira</button>
+                        <button type="button" class="zone-filter-btn" data-zone="lateral">Lateral</button>
+                        <button type="button" class="zone-filter-btn" data-zone="cabine">Cabine</button>
+                        <button type="button" class="zone-filter-btn" data-zone="mecanica">Mecânica</button>
+                        <button type="button" class="zone-filter-btn" data-zone="seguranca">Segurança</button>
+                    </div>
+                </div>
                 <div id="itensContainer" class="mt-2"></div>
             </div>
         </div>
@@ -138,53 +351,611 @@
 </div>
 
 <style>
+    @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap");
+
+    :root {
+        --tech-cyan: #22d3ee;
+        --tech-cyan-soft: rgba(34, 211, 238, 0.22);
+        --tech-ok: #00d084;
+        --tech-warning: #f59e0b;
+        --tech-critical: #ef4444;
+        --tech-text: #f8fafc;
+        --tech-text-muted: #94a3b8;
+        --tech-border: #28406e;
+        --tech-surface: #121f3c;
+        --tech-surface-soft: #0f1a31;
+        --tech-surface-card: linear-gradient(145deg, #1a2c50 0%, #121f3c 100%);
+    }
+
+    .container.py-4 {
+        font-family: "Manrope", "Segoe UI", sans-serif;
+    }
+
+    .container.py-4 h1,
+    .container.py-4 h5,
+    .score-label,
+    .score-stat span,
+    .item-title,
+    .status-chip {
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+    }
+
+    .checklist-scoreboard {
+        border: 1px solid var(--tech-border);
+        border-radius: 16px;
+        padding: 16px;
+        background: linear-gradient(130deg, rgba(34, 211, 238, 0.1) 0%, rgba(17, 24, 39, 0.4) 55%, rgba(37, 99, 235, 0.1) 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 20px 35px rgba(9, 14, 30, 0.22);
+        display: grid;
+        gap: 12px;
+    }
+
+    .score-main {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .score-ring {
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: var(--tech-text);
+        background: conic-gradient(var(--tech-critical) 0deg, rgba(148, 163, 184, 0.3) 0deg);
+        position: relative;
+        flex-shrink: 0;
+        box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.55), 0 0 20px rgba(34, 211, 238, 0.15);
+    }
+
+    .score-ring::before {
+        content: "";
+        position: absolute;
+        inset: 7px;
+        background: var(--tech-surface-soft);
+        border-radius: 50%;
+    }
+
+    .score-ring span {
+        position: relative;
+        z-index: 1;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .score-label {
+        color: var(--tech-text-muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+        font-weight: 700;
+    }
+
+    #riskLabel {
+        color: var(--tech-text);
+    }
+
+    .score-main small.text-muted {
+        color: var(--tech-text-muted) !important;
+    }
+
+    .score-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .score-stat {
+        border-radius: 10px;
+        padding: 10px;
+        text-align: center;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(5px);
+    }
+
+    .score-stat strong {
+        display: block;
+        font-size: 1.05rem;
+        line-height: 1.1;
+    }
+
+    .score-stat span {
+        font-size: 0.7rem;
+        color: var(--tech-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+    }
+
+    .score-stat.ok strong {
+        color: var(--tech-ok);
+    }
+
+    .score-stat.warning strong {
+        color: var(--tech-warning);
+    }
+
+    .score-stat.critical strong {
+        color: var(--tech-critical);
+    }
+
+    .score-progress {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.2);
+        overflow: hidden;
+    }
+
+    .fuel-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 10px;
+    }
+
+    .fuel-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(41, 78, 138, 0.45);
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.45);
+        padding: 8px 10px;
+        color: #dbeafe;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+    }
+
+    .fuel-option:hover {
+        border-color: var(--tech-cyan);
+        background: rgba(34, 211, 238, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .fuel-option input[type="checkbox"] {
+        accent-color: #06b6d4;
+        transform: translateY(1px);
+    }
+
+    .fuel-gauge-card {
+        border: 1px solid rgba(41, 78, 138, 0.45);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: rgba(15, 23, 42, 0.6);
+    }
+
+    .fuel-gauge-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2px;
+    }
+
+    .fuel-gauge-header strong {
+        color: #e0f2fe;
+    }
+
+    .fuel-gauge {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 4px;
+    }
+
+    .fuel-gauge-arc {
+        width: 170px;
+        height: 92px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fuel-gauge-arc::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 8px solid #2d4e86;
+        border-bottom: none;
+        border-radius: 170px 170px 0 0;
+        box-shadow: inset 0 0 18px rgba(34, 211, 238, 0.1);
+    }
+
+    .fuel-gauge-arc::after {
+        content: "";
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        bottom: 10px;
+        border-top: 2px dashed rgba(148, 163, 184, 0.35);
+    }
+
+    .fuel-needle {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 3px;
+        height: 74px;
+        background: linear-gradient(to top, #fb7185 0%, #ef4444 35%, #fca5a5 100%);
+        transform-origin: bottom center;
+        transform: translateX(-50%) rotate(0deg);
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.45);
+        transition: transform 0.2s ease;
+    }
+
+    .fuel-marker {
+        position: absolute;
+        bottom: 4px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #93c5fd;
+    }
+
+    .fuel-marker-e {
+        left: 8px;
+    }
+
+    .fuel-marker-f {
+        right: 8px;
+    }
+
+    .zones-toolbar {
+        display: flex;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        border: 1px solid rgba(41, 78, 138, 0.45);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(15, 23, 42, 0.5);
+    }
+
+    .zones-map-panel {
+        display: grid;
+        gap: 8px;
+        flex: 1 1 260px;
+        min-width: 220px;
+    }
+
+    .zones-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #93c5fd;
+        font-weight: 700;
+    }
+
+    .vehicle-map {
+        position: relative;
+        height: 172px;
+        border: 1px dashed rgba(103, 154, 233, 0.45);
+        border-radius: 12px;
+        background:
+            radial-gradient(circle at 50% 35%, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.42) 72%),
+            linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.35));
+        overflow: hidden;
+    }
+
+    .vehicle-map-fallback {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        opacity: 0;
+    }
+
+    .vm-car-shell {
+        position: absolute;
+        left: 50%;
+        top: 52%;
+        width: 86px;
+        height: 126px;
+        transform: translate(-50%, -50%);
+        border-radius: 38px;
+        border: 2px solid rgba(191, 219, 254, 0.9);
+        background: linear-gradient(180deg, rgba(209, 250, 255, 0.95) 0%, rgba(100, 116, 139, 0.86) 100%);
+        box-shadow: inset 0 0 18px rgba(8, 47, 73, 0.42), 0 10px 20px rgba(2, 6, 23, 0.32);
+    }
+
+    .vm-car-cabin {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 52px;
+        height: 68px;
+        transform: translate(-50%, -50%);
+        border-radius: 22px;
+        border: 2px solid rgba(224, 242, 254, 0.7);
+        background: linear-gradient(180deg, rgba(125, 211, 252, 0.68) 0%, rgba(15, 23, 42, 0.55) 100%);
+        box-shadow: inset 0 0 14px rgba(2, 6, 23, 0.35);
+    }
+
+    .vm-car-accent {
+        position: absolute;
+        left: 50%;
+        width: 36px;
+        height: 7px;
+        transform: translateX(-50%);
+        border-radius: 8px;
+        background: rgba(56, 189, 248, 0.5);
+    }
+
+    .vm-front {
+        top: 20px;
+    }
+
+    .vm-rear {
+        bottom: 18px;
+    }
+
+    .vm-wheel {
+        position: absolute;
+        width: 10px;
+        height: 30px;
+        border-radius: 7px;
+        background: rgba(2, 6, 23, 0.95);
+        border: 1px solid rgba(148, 163, 184, 0.55);
+        box-shadow: 0 0 8px rgba(2, 6, 23, 0.45);
+    }
+
+    .vm-wheel-fl {
+        left: calc(50% - 57px);
+        top: 36px;
+    }
+
+    .vm-wheel-fr {
+        left: calc(50% + 47px);
+        top: 36px;
+    }
+
+    .vm-wheel-rl {
+        left: calc(50% - 57px);
+        top: 106px;
+    }
+
+    .vm-wheel-rr {
+        left: calc(50% + 47px);
+        top: 106px;
+    }
+
+    .vehicle-map-photo {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: auto;
+        height: 96%;
+        max-width: 52%;
+        transform: translate(-50%, -50%);
+        object-fit: contain;
+        display: block;
+        filter: drop-shadow(0 8px 16px rgba(2, 6, 23, 0.22));
+        z-index: 2;
+        opacity: 1;
+        user-select: none;
+        pointer-events: none;
+    }
+
+    .zone-map-point {
+        position: absolute;
+        left: var(--x);
+        top: var(--y);
+        transform: translate(-50%, -50%);
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.42);
+        background: rgba(15, 23, 42, 0.78);
+        color: #cfe6ff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1);
+        transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+        z-index: 4;
+    }
+
+    .zone-map-point i {
+        font-size: 0.76rem;
+        line-height: 1;
+        pointer-events: none;
+    }
+
+    .zone-map-point::before {
+        content: "";
+        position: absolute;
+        background: linear-gradient(90deg, rgba(125, 211, 252, 0.04), rgba(125, 211, 252, 0.75));
+        opacity: 0.85;
+        pointer-events: none;
+    }
+
+    .zone-map-point[data-zone="todos"]::before {
+        display: none;
+    }
+
+    .zone-map-point[data-zone="dianteira"]::before {
+        left: 50%;
+        top: calc(100% + 1px);
+        width: 2px;
+        height: 18px;
+        transform: translateX(-50%);
+    }
+
+    .zone-map-point[data-zone="traseira"]::before {
+        left: 50%;
+        bottom: calc(100% + 1px);
+        width: 2px;
+        height: 18px;
+        transform: translateX(-50%);
+    }
+
+    .zone-map-point[data-zone="lateral"]::before {
+        right: calc(100% + 1px);
+        top: 50%;
+        width: 22px;
+        height: 2px;
+        transform: translateY(-50%);
+    }
+
+    .zone-map-point[data-zone="mecanica"]::before,
+    .zone-map-point[data-zone="cabine"]::before,
+    .zone-map-point[data-zone="seguranca"]::before {
+        left: calc(100% + 1px);
+        top: 50%;
+        width: 22px;
+        height: 2px;
+        transform: translateY(-50%);
+    }
+
+    .zone-map-point::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 50%;
+        bottom: calc(100% + 8px);
+        transform: translateX(-50%) translateY(4px);
+        background: rgba(8, 15, 32, 0.94);
+        color: #e2f3ff;
+        border: 1px solid rgba(34, 211, 238, 0.45);
+        border-radius: 8px;
+        padding: 0.18rem 0.45rem;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.14s ease, transform 0.14s ease;
+        z-index: 2;
+    }
+
+    .zone-map-point:hover::after,
+    .zone-map-point:focus-visible::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .zone-map-point:hover {
+        transform: translate(-50%, -50%) scale(1.06);
+        border-color: #22d3ee;
+        color: #ecfeff;
+    }
+
+    .zone-map-point.active {
+        border-color: #06b6d4;
+        background: linear-gradient(145deg, rgba(6, 182, 212, 0.6), rgba(8, 47, 73, 0.95));
+        color: #ecfeff;
+        box-shadow: 0 0 14px rgba(34, 211, 238, 0.45);
+    }
+
+    .vehicle-map-caption {
+        font-size: 0.72rem;
+        color: #9fb8dc;
+    }
+
+    .zone-filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        flex: 2 1 420px;
+    }
+
+    .zone-filter-btn {
+        border: 1px solid rgba(41, 78, 138, 0.8);
+        background: rgba(15, 23, 42, 0.45);
+        color: #cbd5e1;
+        border-radius: 999px;
+        padding: 0.26rem 0.7rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+    }
+
+    .zone-filter-btn.active {
+        border-color: #06b6d4;
+        background: rgba(6, 182, 212, 0.2);
+        color: #ecfeff;
+    }
+
+    .zone-filter-btn:hover {
+        border-color: #22d3ee;
+        color: #ecfeff;
+    }
+
     #itensContainer {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(206px, 1fr));
         gap: 14px;
         padding: 10px 0;
     }
-    
-    @media (max-width: 768px) {
-        #itensContainer {
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 12px;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        #itensContainer {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-    }
 
     .item-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 10px !important;
-        padding: 14px !important;
+        --status-color: #5f7396;
+        --status-glow: rgba(95, 115, 150, 0.35);
+        background: var(--tech-surface-card);
+        border: 1px solid var(--tech-border) !important;
+        border-radius: 12px !important;
+        padding: 13px !important;
         display: flex;
         flex-direction: column;
         gap: 10px;
-        transition: all 0.3s ease;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        box-shadow: 0 8px 20px rgba(2, 6, 23, 0.2);
         height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .item-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--status-color);
+        box-shadow: 0 0 14px var(--status-glow);
+    }
+
+    .item-card::after {
+        content: "";
+        position: absolute;
+        top: -44px;
+        right: -44px;
+        width: 130px;
+        height: 130px;
+        background: radial-gradient(circle, var(--status-glow) 0%, rgba(0, 0, 0, 0) 72%);
+        pointer-events: none;
     }
 
     .item-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-        border-color: #10b981 !important;
+        transform: translateY(-4px);
+        box-shadow: 0 14px 32px rgba(2, 6, 23, 0.34);
+        border-color: var(--status-color) !important;
     }
 
-    .dark-mode .item-card {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border-color: #334155 !important;
+    .item-card.status-ok {
+        --status-color: var(--tech-ok);
+        --status-glow: rgba(0, 208, 132, 0.36);
     }
 
-    .dark-mode .item-card:hover {
-        border-color: #10b981 !important;
+    .item-card.status-attention {
+        --status-color: var(--tech-warning);
+        --status-glow: rgba(245, 158, 11, 0.36);
+    }
+
+    .item-card.status-critical {
+        --status-color: var(--tech-critical);
+        --status-glow: rgba(239, 68, 68, 0.4);
     }
 
     .item-header {
@@ -196,41 +967,134 @@
     .item-icon {
         width: 40px !important;
         height: 40px !important;
-        font-size: 1.1rem !important;
-        border-radius: 8px !important;
-        background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%) !important;
-        color: #ffffff !important;
+        font-size: 1.05rem !important;
+        border-radius: 10px !important;
+        background: linear-gradient(145deg, #94a3b8 0%, #cbd5e1 100%) !important;
+        color: #0f172a !important;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-weight: 600;
+        font-weight: 700;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+    }
+
+    .item-title-wrap {
+        min-width: 0;
+        flex: 1;
+        display: grid;
+        gap: 6px;
     }
 
     .item-title {
-        font-size: 0.85rem !important;
+        font-size: 0.9rem !important;
         font-weight: 700 !important;
         margin: 0 !important;
-        color: #1f2937 !important;
-        line-height: 1.3;
+        color: var(--tech-text) !important;
+        line-height: 1.25;
         word-break: break-word;
-        flex: 1;
     }
 
-    .dark-mode .item-title {
-        color: #e2e8f0 !important;
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border: 1px solid transparent;
+        transition: all 0.15s ease;
+    }
+
+    .item-tags {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .item-zone-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        padding: 0.18rem 0.45rem;
+        border-radius: 999px;
+        font-size: 0.64rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border: 1px solid rgba(56, 189, 248, 0.36);
+        color: #bfdbfe;
+        background: rgba(2, 132, 199, 0.16);
+    }
+
+    .status-chip--ok {
+        color: #9bf4c5;
+        background: rgba(0, 208, 132, 0.12);
+        border-color: rgba(0, 208, 132, 0.35);
+    }
+
+    .status-chip--attention {
+        color: #ffd89a;
+        background: rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .status-chip--critical {
+        color: #ffb4b4;
+        background: rgba(239, 68, 68, 0.13);
+        border-color: rgba(239, 68, 68, 0.35);
     }
 
     .item-card select.form-select-sm {
-        font-size: 0.8rem !important;
-        border-radius: 6px !important;
-        padding: 6px 8px !important;
-        border: 1px solid #cbd5e1 !important;
+        font-size: 0.82rem !important;
+        border-radius: 8px !important;
+        padding: 7px 10px !important;
+        border: 1px solid #385287 !important;
+        background-color: rgba(15, 23, 42, 0.65) !important;
+        color: #dbeafe !important;
+        font-weight: 600;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
     }
 
     .item-card select.form-select-sm:focus {
-        border-color: #10b981 !important;
-        box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.15) !important;
+        border-color: var(--tech-cyan) !important;
+        box-shadow: 0 0 0 0.18rem var(--tech-cyan-soft) !important;
+    }
+
+    /* Garante contraste alto no dropdown aberto (lista de options). */
+    .item-card select.form-select-sm option {
+        color: #0f172a !important;
+        background: #e2e8f0 !important;
+        font-weight: 600;
+    }
+
+    .item-card select.form-select-sm option:checked {
+        color: #0f172a !important;
+        background: #93c5fd !important;
+    }
+
+    .item-card select.status-ok {
+        border-color: rgba(0, 208, 132, 0.75) !important;
+        background: rgba(0, 208, 132, 0.1) !important;
+        color: #a7f3d0 !important;
+    }
+
+    .item-card select.status-attention {
+        border-color: rgba(245, 158, 11, 0.75) !important;
+        background: rgba(245, 158, 11, 0.12) !important;
+        color: #fde68a !important;
+    }
+
+    .item-card select.status-critical {
+        border-color: rgba(239, 68, 68, 0.82) !important;
+        background: rgba(239, 68, 68, 0.13) !important;
+        color: #fecaca !important;
     }
 
     .compact-actions {
@@ -240,15 +1104,22 @@
     }
 
     .item-card input.form-control-sm {
-        font-size: 0.75rem !important;
-        border-radius: 6px !important;
-        padding: 6px 8px !important;
+        font-size: 0.77rem !important;
+        border-radius: 8px !important;
+        padding: 6px 9px !important;
         flex: 1;
-        border: 1px solid #cbd5e1 !important;
+        border: 1px solid #355182 !important;
+        background: rgba(15, 23, 42, 0.52) !important;
+        color: #dbeafe !important;
     }
 
     .item-card input.form-control-sm::placeholder {
-        color: #94a3b8;
+        color: #8aa0c8;
+    }
+
+    .item-card input.form-control-sm:focus {
+        border-color: var(--tech-cyan) !important;
+        box-shadow: 0 0 0 0.18rem var(--tech-cyan-soft) !important;
     }
 
     .btn-camera-mini {
@@ -259,40 +1130,77 @@
         align-items: center;
         justify-content: center;
         font-size: 1rem !important;
-        border-radius: 6px !important;
-        background: #f0f4f8 !important;
-        border: 1px solid #cbd5e1 !important;
-        color: #475569 !important;
+        border-radius: 8px !important;
+        background: rgba(15, 23, 42, 0.62) !important;
+        border: 1px solid #3c5a8f !important;
+        color: #c6dcff !important;
         flex-shrink: 0;
-        transition: all 0.2s;
+        transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
     }
 
     .btn-camera-mini:hover {
-        background: #e0e7f1 !important;
-        border-color: #a1aab9 !important;
+        transform: translateY(-1px);
+        background: rgba(34, 211, 238, 0.16) !important;
+        border-color: var(--tech-cyan) !important;
+        color: #ecfeff !important;
     }
 
     .btn-camera-mini.has-photo {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-        border-color: #059669 !important;
-        color: white !important;
+        background: linear-gradient(140deg, #14b8a6 0%, #0ea5e9 100%) !important;
+        border-color: #22d3ee !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 14px rgba(34, 211, 238, 0.3);
     }
 
-    .dark-mode .btn-camera-mini {
-        background: #334155 !important;
-        border-color: #475569 !important;
-        color: #cbd5e1 !important;
+    @media (max-width: 768px) {
+        #itensContainer {
+            grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+            gap: 12px;
+        }
     }
 
-    .dark-mode .btn-camera-mini:hover {
-        background: #475569 !important;
+    @media (max-width: 576px) {
+        .score-stats {
+            grid-template-columns: 1fr;
+        }
+
+        #itensContainer {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .item-card {
+            padding: 11px !important;
+        }
+
+        .zones-toolbar {
+            padding: 8px;
+        }
+
+        .zone-filters {
+            gap: 6px;
+            flex: 1 1 100%;
+        }
+
+        .vehicle-map {
+            height: 156px;
+        }
+
+        .fuel-options {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
 
-    .dark-mode .item-card select.form-select-sm,
-    .dark-mode .item-card input.form-control-sm {
-        background: #1e293b !important;
-        color: #e2e8f0 !important;
-        border-color: #475569 !important;
+    .dark-mode .checklist-scoreboard {
+        border-color: #2f446f;
+    }
+
+    .dark-mode .score-ring::before {
+        background: var(--tech-surface-soft);
+    }
+
+    .dark-mode .score-progress {
+        background: rgba(71, 85, 105, 0.4);
     }
 </style>
 
@@ -351,7 +1259,9 @@
          console.log('DOM carregado, iniciando carregamento de dados...');
          carregarCondutores();
          carregarVeiculos();
+         setupZoneFilters();
          renderItens(itensCarroData);
+         updateFuelGauge();
     });
 
     async function carregarVeiculos() {
@@ -372,17 +1282,235 @@
          }
     }
 
+    const CRITICAL_ITEM_KEYWORDS = ["freio", "pneu", "estepe", "farol", "lanterna", "pisca", "luz", "fluido", "agua", "oleo", "arrefecimento", "retrovisor"];
+
     function getStatusOptionsForItem(item) {
-         if (item.includes("Água") || item.includes("Fluido")) {
-             return ["Normal", "Baixo (precisa completar)", "Crítico (risco de falha ou falta)"];
+         const normalized = normalizeText(item);
+
+         if (/(agua|fluido|oleo|arrefecimento)/.test(normalized)) {
+             return ["OK", "Baixo", "Cr\u00edtico"];
          }
-         if (item.includes("Pneu") || item.includes("Estepe")) {
-             return ["OK", "Rasgo", "Bolha", "Desgaste"];
+         if (/(pneu|estepe)/.test(normalized)) {
+             return ["OK", "Desgastado", "Danificado"];
          }
-         if (item.includes("Farol") || item.includes("Pisca") || item.includes("Lanterna") || item.includes("Luz")) {
-             return ["OK", "Queimada", "Não tem"];
+         if (/(farol|pisca|lanterna|luz)/.test(normalized)) {
+             return ["OK", "Queimado", "N\u00e3o funciona"];
          }
-         return ["OK", "Danificado", "Desgastado"];
+         if (/(retrovisor|espelho|vidro)/.test(normalized)) {
+             return ["OK", "Trincado", "Quebrado"];
+         }
+         if (/(lataria)/.test(normalized)) {
+             return ["OK", "Risco leve", "Amassado"];
+         }
+         if (/(interior|assento)/.test(normalized)) {
+             return ["OK", "Sujo", "Danificado"];
+         }
+         return ["OK", "Regular", "Danificado"];
+    }
+
+    function normalizeText(text) {
+         return (text || "")
+             .toLowerCase()
+             .normalize("NFD")
+             .replace(/[\u0300-\u036f]/g, "")
+             .trim();
+    }
+
+    function classifyStatus(status) {
+         const normalized = normalizeText(status);
+
+         if (!normalized || normalized === "ok" || normalized === "normal" || normalized === "conforme") {
+             return "ok";
+         }
+
+         if (["danificado", "critico", "nao funciona", "nao ok", "rasgo", "bolha", "falta", "quebrado"].includes(normalized)) {
+             return "critical";
+         }
+
+         if (["desgastado", "baixo", "alto", "calibrar", "queimada", "queimado", "regular", "nao tem", "trincado", "amassado", "risco leve", "sujo"].includes(normalized)) {
+             return "attention";
+         }
+
+         if (normalized.includes("critic") || normalized.includes("danific") || normalized.includes("rasg") || normalized.includes("falta")) {
+             return "critical";
+         }
+
+         return "attention";
+    }
+
+    function itemWeight(itemName) {
+         const normalizedItem = normalizeText(itemName);
+         return CRITICAL_ITEM_KEYWORDS.some(keyword => normalizedItem.includes(keyword)) ? 1.8 : 1;
+    }
+
+    function getItemZone(itemName) {
+         const normalized = normalizeText(itemName);
+
+         if (/(farol|pisca|limpador|dianteir|luz alta|luz baixa)/.test(normalized)) return "dianteira";
+         if (/(lanterna|luz de re|luz de freio|traseir)/.test(normalized)) return "traseira";
+         if (/(retrovisor|lataria|vidro)/.test(normalized)) return "lateral";
+         if (/(interior|assento|manete|manopla|painel)/.test(normalized)) return "cabine";
+         if (/(oleo|fluido|agua|arrefecimento|motor|corrente)/.test(normalized)) return "mecanica";
+         if (/(estepe|triangulo|macaco|chave de roda|capacete|freio)/.test(normalized)) return "seguranca";
+         return "geral";
+    }
+
+    function getZoneLabel(zone) {
+         const labels = {
+             dianteira: "Dianteira",
+             traseira: "Traseira",
+             lateral: "Lateral",
+             cabine: "Cabine",
+             mecanica: "Mecânica",
+             seguranca: "Segurança",
+             geral: "Geral"
+         };
+         return labels[zone] || "Geral";
+    }
+
+    let activeZoneFilter = "todos";
+
+    function applyZoneFilter() {
+         const cards = Array.from(document.querySelectorAll("#itensContainer .item-card"));
+         cards.forEach(card => {
+             const zone = card.dataset.zone || "geral";
+             const show = activeZoneFilter === "todos" || zone === activeZoneFilter;
+             card.style.display = show ? "" : "none";
+         });
+    }
+
+    function setActiveZone(zone) {
+         activeZoneFilter = zone || "todos";
+         document.querySelectorAll(".zone-filter-btn").forEach(btn => {
+              btn.classList.toggle("active", btn.dataset.zone === activeZoneFilter);
+         });
+         document.querySelectorAll(".zone-map-point").forEach(point => {
+              point.classList.toggle("active", point.dataset.zone === activeZoneFilter);
+         });
+         applyZoneFilter();
+    }
+
+    function setupZoneFilters() {
+         const container = document.getElementById("zoneFilters");
+         if (!container) return;
+         container.querySelectorAll(".zone-filter-btn").forEach(btn => {
+              btn.addEventListener("click", () => {
+                 setActiveZone(btn.dataset.zone || "todos");
+              });
+         });
+         document.querySelectorAll(".zone-map-point").forEach(point => {
+              point.addEventListener("click", () => {
+                   setActiveZone(point.dataset.zone || "todos");
+              });
+         });
+         setActiveZone(activeZoneFilter);
+    }
+
+    function updateFuelGauge() {
+         const range = document.getElementById("fuelLevelRange");
+         const value = document.getElementById("fuelLevelValue");
+         const needle = document.getElementById("fuelNeedle");
+         if (!range || !value || !needle) return;
+         const percentage = Number(range.value || 0);
+         const angle = -90 + (percentage * 1.8);
+         value.textContent = `${percentage}%`;
+         needle.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+    }
+
+    function applyStatusStyling(selectEl) {
+         if (!selectEl) return;
+
+         const statusType = classifyStatus(selectEl.value);
+         const card = selectEl.closest(".item-card");
+         const statusChip = card ? card.querySelector(".status-chip") : null;
+         selectEl.classList.remove("status-ok", "status-attention", "status-critical");
+         if (card) card.classList.remove("status-ok", "status-attention", "status-critical");
+         if (statusChip) {
+             statusChip.classList.remove("status-chip--ok", "status-chip--attention", "status-chip--critical");
+             statusChip.textContent = selectEl.value || "Sem status";
+         }
+
+         if (statusType === "ok") {
+             selectEl.classList.add("status-ok");
+             if (card) card.classList.add("status-ok");
+             if (statusChip) statusChip.classList.add("status-chip--ok");
+             return;
+         }
+
+         if (statusType === "critical") {
+             selectEl.classList.add("status-critical");
+             if (card) card.classList.add("status-critical");
+             if (statusChip) statusChip.classList.add("status-chip--critical");
+             return;
+         }
+
+         selectEl.classList.add("status-attention");
+         if (card) card.classList.add("status-attention");
+         if (statusChip) statusChip.classList.add("status-chip--attention");
+    }
+
+    function getScoreTheme(score) {
+         if (score >= 85) return { color: "#10b981", risk: "Risco Baixo", barClass: "bg-success" };
+         if (score >= 70) return { color: "#0ea5e9", risk: "Risco Moderado", barClass: "bg-info" };
+         if (score >= 50) return { color: "#f59e0b", risk: "Risco Alto", barClass: "bg-warning" };
+         return { color: "#ef4444", risk: "Risco Crítico", barClass: "bg-danger" };
+    }
+
+    function updateChecklistScoreboard() {
+         const statusSelects = Array.from(document.querySelectorAll('#itensContainer select[name^="status_"]'));
+         if (!statusSelects.length) return;
+
+         let weightedScore = 0;
+         let totalWeight = 0;
+         let countOk = 0;
+         let countAttention = 0;
+         let countCritical = 0;
+
+         statusSelects.forEach(selectEl => {
+             applyStatusStyling(selectEl);
+             const card = selectEl.closest(".item-card");
+             const itemName = card ? card.dataset.itemName : "";
+             const weight = itemWeight(itemName);
+             const statusType = classifyStatus(selectEl.value);
+
+             totalWeight += weight;
+             if (statusType === "ok") {
+                 weightedScore += (100 * weight);
+                 countOk += 1;
+             } else if (statusType === "critical") {
+                 weightedScore += (25 * weight);
+                 countCritical += 1;
+             } else {
+                 weightedScore += (65 * weight);
+                 countAttention += 1;
+             }
+         });
+
+         const score = totalWeight > 0 ? Math.round(weightedScore / totalWeight) : 0;
+         const theme = getScoreTheme(score);
+         const scoreRing = document.getElementById("scoreRing");
+         const scoreValue = document.getElementById("scoreValue");
+         const riskLabel = document.getElementById("riskLabel");
+         const scoreProgressBar = document.getElementById("scoreProgressBar");
+
+         if (scoreValue) scoreValue.textContent = score;
+         if (riskLabel) riskLabel.textContent = theme.risk;
+         if (scoreRing) {
+             scoreRing.style.background = `conic-gradient(${theme.color} ${score * 3.6}deg, #e2e8f0 0deg)`;
+         }
+
+         if (scoreProgressBar) {
+             scoreProgressBar.style.width = `${score}%`;
+             scoreProgressBar.classList.remove("bg-success", "bg-info", "bg-warning", "bg-danger");
+             scoreProgressBar.classList.add(theme.barClass);
+         }
+
+         const countOkEl = document.getElementById("countOk");
+         const countAttentionEl = document.getElementById("countAttention");
+         const countCriticalEl = document.getElementById("countCritical");
+         if (countOkEl) countOkEl.textContent = countOk;
+         if (countAttentionEl) countAttentionEl.textContent = countAttention;
+         if (countCriticalEl) countCriticalEl.textContent = countCritical;
     }
 
     function updatePhotoBadge(input, index) {
@@ -405,34 +1533,53 @@
          itens.forEach((item, index) => {
              const itemIndex = index + 1;
              const icon = getIconForItem(item);
+             const itemZone = getItemZone(item);
              const statusOptions = getStatusOptionsForItem(item);
              const optionsHTML = statusOptions.map(opt => `<option>${opt}</option>`).join("");
 
              const card = document.createElement("div");
              card.className = "item-card shadow-sm";
+             card.dataset.itemName = item;
+             card.dataset.zone = itemZone;
              card.innerHTML = `
                  <div class="item-header">
                      <div class="item-icon">
                          <i class="bi ${icon}"></i>
                      </div>
-                     <p class="item-title" title="${item}">${item}</p>
+                     <div class="item-title-wrap">
+                         <p class="item-title" title="${item}">${item}</p>
+                         <div class="item-tags">
+                             <span class="item-zone-chip">${getZoneLabel(itemZone)}</span>
+                             <span class="status-chip status-chip--ok" id="status-chip-${itemIndex}">${statusOptions[0]}</span>
+                         </div>
+                     </div>
                  </div>
                  
-                 <select class="form-select form-select-sm" name="status_${itemIndex}">
+                 <select class="form-select form-select-sm" name="status_${itemIndex}" aria-label="Status de ${item}">
                      ${optionsHTML}
                  </select>
                  
                  <div class="compact-actions">
-                     <input class="form-control form-control-sm" name="coment_${itemIndex}" placeholder="Obs...">
-                     <label class="btn btn-outline-secondary btn-camera-mini mb-0" for="foto_${itemIndex}">
+                     <input class="form-control form-control-sm" name="coment_${itemIndex}" placeholder="Observação...">
+                     <label class="btn btn-outline-secondary btn-camera-mini mb-0" for="foto_${itemIndex}" title="Adicionar foto">
                          <i class="bi bi-camera"></i>
                      </label>
                      <input type="file" class="d-none" id="foto_${itemIndex}" name="foto_${itemIndex}" accept="image/*" onchange="updatePhotoBadge(this, ${itemIndex})">
                  </div>
                  <input type="hidden" name="itemname_${itemIndex}" value="${item}">
              `;
+
+             const statusSelect = card.querySelector(`select[name="status_${itemIndex}"]`);
+             if (statusSelect) {
+                 statusSelect.addEventListener("change", updateChecklistScoreboard);
+                 applyStatusStyling(statusSelect);
+             }
+
              container.appendChild(card);
          });
+
+         updateChecklistScoreboard();
+         applyZoneFilter();
     }
 
     const tipoSelect = document.getElementById("tipoVeiculo");
@@ -456,6 +1603,12 @@
     document.getElementById('foto_cnh').addEventListener('change', function () {
          document.getElementById('foto_cnh_display').textContent = this.files.length > 0 ? this.files[0].name : 'Nenhuma selecionada';
     });
+
+    const fuelLevelRange = document.getElementById("fuelLevelRange");
+    if (fuelLevelRange) {
+         fuelLevelRange.addEventListener("input", updateFuelGauge);
+         fuelLevelRange.addEventListener("change", updateFuelGauge);
+    }
 </script>
 
 <!-- Modal Lista de Veículos -->
@@ -552,3 +1705,5 @@
 </script>
 
 {% endblock %}
+
+

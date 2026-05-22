@@ -31,14 +31,17 @@
             </a>
           </div>
           <div class="d-flex align-items-center gap-2">
+            {% if current_user.is_admin %}
             <a href="{{ url_for('editar_checklist', veiculo_id=r.id) }}" 
                class="btn btn-outline-primary btn-sm" title="Editar Checklist">
               <i class="bi bi-pencil"></i> Editar
             </a>
+            {% endif %}
             <a href="{{ url_for('nova_manutencao', veiculo_id=r.id) }}" 
                class="btn btn-outline-success btn-sm" title="Adicionar Manutenção">
               <i class="bi bi-plus-circle"></i> Manutenção
             </a>
+            {% if current_user.is_admin %}
             <button type="button" 
                     class="btn btn-outline-warning btn-sm" 
                     onclick="confirmarLimpeza({{ r.id }}, '{{ r.placa }}')"
@@ -51,6 +54,7 @@
                     title="Excluir veículo">
               <i class="bi bi-trash"></i> Excluir
             </button>
+            {% endif %}
             <span class="badge bg-secondary">{{ r.tipo or '-' }}</span>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import os
+import unicodedata
 from datetime import datetime
 from PIL import Image
 from werkzeug.utils import secure_filename
@@ -37,6 +38,118 @@ VEICULOS_MOTO = [
 ]
 
 ALLOWED_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
+
+
+STATUS_OK = "ok"
+STATUS_ATENCAO = "atencao"
+STATUS_CRITICO = "critico"
+STATUS_NAO_VERIFICADO = "nao_verificado"
+
+STATUS_META = {
+    STATUS_OK: {"label": "OK", "score": 100},
+    STATUS_ATENCAO: {"label": "Atenção", "score": 65},
+    STATUS_CRITICO: {"label": "Crítico", "score": 25},
+    STATUS_NAO_VERIFICADO: {"label": "Não verificado", "score": 45},
+}
+
+# Itens com impacto mais alto na segurança operacional.
+CRITICAL_ITEM_KEYWORDS = (
+    "freio",
+    "pneu",
+    "estepe",
+    "farol",
+    "lanterna",
+    "pisca",
+    "luz",
+    "fluido",
+    "oleo",
+    "agua",
+    "arrefecimento",
+    "retrovisor",
+)
+
+
+def _normalize_text(text):
+    base = str(text or "").strip().lower()
+    normalized = unicodedata.normalize("NFKD", base)
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
+
+def _is_critical_item(item_name):
+    normalized_name = _normalize_text(item_name)
+    return any(keyword in normalized_name for keyword in CRITICAL_ITEM_KEYWORDS)
+
+
+def classify_checklist_status(raw_status):
+    status = _normalize_text(raw_status)
+    if not status:
+        return STATUS_NAO_VERIFICADO
+
+    if status in {"ok", "normal", "conforme", "verificado"}:
+        return STATUS_OK
+
+    if status in {"danificado", "rasgo", "bolha", "nao ok", "nao-ok", "critico", "falta", "vazando", "vazamento", "nao funciona"}:
+        return STATUS_CRITICO
+
+    if status in {"desgastado", "calibrar", "baixo", "alto", "queimada", "nao tem", "regular", "ajustar"}:
+        return STATUS_ATENCAO
+
+    if any(token in status for token in ("critic", "danific", "rasg", "bolh", "falta", "vaz")):
+        return STATUS_CRITICO
+
+    if any(token in status for token in ("desgast", "calibr", "baix", "alto", "queim", "nao tem", "regular")):
+        return STATUS_ATENCAO
+
+    return STATUS_ATENCAO
+
+
+def avaliar_itens_checklist(itens):
+    total_weight = 0
+    weighted_score = 0
+    itens_ok = 0
+    itens_atencao = 0
+    itens_criticos = 0
+    itens_nao_verificados = 0
+
+    for item in itens or []:
+        nome_item = item.get("nome_item", "")
+        status_raw = item.get("status", "")
+        status_tipo = classify_checklist_status(status_raw)
+        status_score = STATUS_META[status_tipo]["score"]
+        weight = 1.8 if _is_critical_item(nome_item) else 1.0
+
+        total_weight += weight
+        weighted_score += status_score * weight
+
+        if status_tipo == STATUS_OK:
+            itens_ok += 1
+        elif status_tipo == STATUS_ATENCAO:
+            itens_atencao += 1
+        elif status_tipo == STATUS_CRITICO:
+            itens_criticos += 1
+        else:
+            itens_nao_verificados += 1
+
+    pontuacao = round(weighted_score / total_weight) if total_weight else 0
+
+    if pontuacao >= 85:
+        risco = "Baixo"
+    elif pontuacao >= 70:
+        risco = "Moderado"
+    elif pontuacao >= 50:
+        risco = "Alto"
+    else:
+        risco = "Crítico"
+
+    return {
+        "total_itens": len(itens or []),
+        "pontuacao": pontuacao,
+        "risco": risco,
+        "itens_ok": itens_ok,
+        "itens_atencao": itens_atencao,
+        "itens_criticos": itens_criticos,
+        "itens_nao_verificados": itens_nao_verificados,
+    }
 
 
 def _is_allowed(filename: str) -> bool:
@@ -124,6 +237,24 @@ def salvar_checklist(form, files):
             return None
     oleo_km = _digits_only(oleo_km)
     observacoes = form.get("observacoes")
+
+    # Complementos vindos do painel visual de combustível.
+    combustivel_tipos = form.getlist("combustivel_tipo")
+    combustivel_nivel = form.get("combustivel_nivel")
+    extras_combustivel = []
+    if combustivel_tipos:
+        extras_combustivel.append("Combustíveis: " + ", ".join(combustivel_tipos))
+    if combustivel_nivel not in (None, ""):
+        try:
+            nivel = int(float(str(combustivel_nivel).strip()))
+            nivel = max(0, min(100, nivel))
+            extras_combustivel.append(f"Tanque: {nivel}%")
+        except Exception:
+            pass
+    if extras_combustivel:
+        bloco = " | ".join(extras_combustivel)
+        observacoes = f"{observacoes} | {bloco}" if observacoes else bloco
+
     data = datetime.now().strftime("%d/%m/%Y %H:%M")
 
     foto_carro_file = files.get("foto_carro")
@@ -152,8 +283,9 @@ def salvar_checklist(form, files):
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (veic_id, nome_item, status, comentario, caminho_foto, caminho_thumb))
             
-            # Coleta itens com problema - verifica status definido no app.py
-            if status in ['Danificado', 'Desgastado', 'Calibrar', 'Baixo', 'Alto']:
+            # Coleta itens com problema com classificação unificada de risco
+            status_tipo = classify_checklist_status(status)
+            if status_tipo in (STATUS_ATENCAO, STATUS_CRITICO):
                 itens_problema.append({
                     'nome_item': nome_item,
                     'comentario': comentario

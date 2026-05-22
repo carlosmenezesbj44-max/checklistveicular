@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
+from urllib.parse import urlparse, urljoin
 from models import User
 from db import get_conn
 import os
@@ -21,6 +22,20 @@ def ensure_upload_folder():
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def is_safe_redirect_url(target):
+    if not target:
+        return False
+
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
+
+def get_safe_next_url():
+    next_page = request.form.get('next') or request.args.get('next')
+    if is_safe_redirect_url(next_page):
+        return next_page
+    return url_for('dashboard')
 
 def save_profile_photo(file):
     if not file or file.filename == '':
@@ -57,8 +72,7 @@ def login():
         
         if user and user.check_password(password):
             login_user(user)
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('dashboard'))
+            return redirect(get_safe_next_url())
         else:
             flash('Usuário ou senha inválidos', 'error')
     
@@ -233,27 +247,35 @@ def edit_user(user_id):
     
     return render_template('edit_user.html', user=user)
 
-@auth_bp.route('/usuario/<int:user_id>/deletar', methods=['POST'])
+@auth_bp.route('/usuario/<int:user_id>/deletar', methods=['GET', 'POST'])
 @login_required
 def delete_user(user_id):
     """Deletar um usuário (apenas admins)"""
     if current_user.role != 'admin':
         flash('Você não tem permissão para fazer isso.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
+    if request.method == 'GET':
+        flash('Use o botão de exclusão na lista de usuários para confirmar a ação.', 'warning')
+        return redirect(url_for('auth.manage_users'))
+
     # Não permitir que um admin delete a si mesmo
     if user_id == current_user.id:
         flash('Você não pode deletar sua própria conta.', 'error')
         return redirect(url_for('auth.manage_users'))
     
-    user = User.get(user_id)
-    if not user:
-        flash('Usuário não encontrado.', 'error')
-        return redirect(url_for('auth.manage_users'))
-    
-    username = user.username
-    User.delete(user_id)
-    flash(f'Usuário {username} deletado com sucesso!', 'success')
+    try:
+        user = User.get(user_id)
+        if not user:
+            flash('Usuário não encontrado.', 'error')
+            return redirect(url_for('auth.manage_users'))
+
+        username = user.username
+        User.delete(user_id)
+        flash(f'Usuário {username} deletado com sucesso!', 'success')
+    except Exception as e:
+        flash(f'Erro ao deletar usuário: {e}', 'danger')
+
     return redirect(url_for('auth.manage_users'))
 
 @auth_bp.route('/usuario/<int:user_id>/toggle-active', methods=['POST'])

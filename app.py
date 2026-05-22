@@ -17,6 +17,8 @@ from flask import (
     jsonify,
     send_from_directory,
     Response,
+    abort,
+    session,
 )
 from flask_login import (
     LoginManager,
@@ -76,6 +78,7 @@ from services import (
     obter_eficiencia_condutor,
     obter_benchmarking_veiculos,
     obter_benchmarking_condutores,
+    avaliar_itens_checklist,
 )
 from config import (
     ANEXOS_DIR,
@@ -105,7 +108,7 @@ from config_manager import (
 init_db()
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
-app.secret_key = os.environ.get("SECRET_KEY", "troque-esta-chave")
+app.secret_key = SECRET_KEY
 
 # Configuração do Flask-Login
 login_manager = LoginManager()
@@ -113,6 +116,33 @@ login_manager.login_view = "auth.login"
 login_manager.login_message = "Por favor, faça login para acessar esta página."
 login_manager.login_message_category = "warning"
 login_manager.init_app(app)
+
+
+def _to_float(value, default=0.0):
+    """Converte valor textual para float de forma tolerante (pt-BR/en-US)."""
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    text = str(value).strip()
+    if not text:
+        return default
+
+    text = text.replace("R$", "").replace(" ", "")
+    if "," in text and "." in text:
+        if text.rfind(",") > text.rfind("."):
+            text = text.replace(".", "").replace(",", ".")
+        else:
+            text = text.replace(",", "")
+    elif "," in text:
+        text = text.replace(",", ".")
+
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return default
+
 
 
 # Decorators para proteção por role
@@ -166,11 +196,46 @@ def load_user(user_id):
 # Registrar Blueprint de autenticação
 app.register_blueprint(auth_bp, url_prefix="/")
 
+CSRF_SESSION_KEY = "_csrf_token"
+CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+def generate_csrf_token():
+    token = session.get(CSRF_SESSION_KEY)
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session[CSRF_SESSION_KEY] = token
+    return token
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": generate_csrf_token}
+
+
+@app.before_request
+def validate_csrf_token():
+    if request.method not in CSRF_METHODS:
+        return None
+
+    expected_token = session.get(CSRF_SESSION_KEY)
+    submitted_token = (
+        request.form.get("csrf_token")
+        or request.headers.get("X-CSRFToken")
+        or request.headers.get("X-CSRF-Token")
+    )
+
+    if not expected_token or not submitted_token or not secrets.compare_digest(expected_token, submitted_token):
+        abort(400, description="Token CSRF inválido ou ausente")
+
+    return None
+
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
+        is_admin_user = bool(getattr(current_user, "is_admin", False) or getattr(current_user, "role", None) == "admin")
+        if not current_user.is_authenticated or not is_admin_user:
             flash("Acesso restrito a administradores", "error")
             return redirect(url_for("dashboard"))
         return f(*args, **kwargs)
@@ -187,7 +252,7 @@ def permission_required(feature_key, message="Você não tem permissão para ace
                 return redirect(url_for("auth.login"))
 
             # Admin sempre tem acesso
-            if current_user.is_admin:
+            if bool(getattr(current_user, "is_admin", False) or getattr(current_user, "role", None) == "admin"):
                 return f(*args, **kwargs)
 
             # Verificar permissão do usuário
@@ -206,7 +271,7 @@ def has_permission(feature_key):
         return False
 
     # Admin sempre tem todas as permissões
-    if current_user.is_admin:
+    if bool(getattr(current_user, "is_admin", False) or getattr(current_user, "role", None) == "admin"):
         return True
 
     try:
@@ -373,6 +438,14 @@ def dashboard():
         "SELECT SUM(CAST(m.valor_peca AS REAL)) + SUM(CAST(m.mao_de_obra AS REAL)) FROM manutencao m JOIN veiculos v ON v.id = m.veiculo_id WHERE m.valor_peca IS NOT NULL OR m.mao_de_obra IS NOT NULL"
     )
     total_gasto_manutencao = cur.fetchone()[0] or 0
+    total_veiculos = total_carros + total_motos
+    custo_total = total_gasto_combustivel + total_gasto_manutencao
+
+    try:
+        cur.execute("SELECT COUNT(*) FROM manutencao WHERE status = 'pendente'")
+        manutencoes_pendentes = cur.fetchone()[0] or 0
+    except Exception:
+        manutencoes_pendentes = 0
 
     cur.execute(
         """
@@ -411,6 +484,9 @@ def dashboard():
     """
     )
     ultimos_combustiveis = [dict(r) for r in cur.fetchall()]
+    for comb in ultimos_combustiveis:
+        comb["quantidade_litros"] = _to_float(comb.get("quantidade_litros"), 0.0)
+        comb["valor_total"] = _to_float(comb.get("valor_total"), 0.0)
 
     cur.execute(
         """
@@ -430,7 +506,10 @@ def dashboard():
         ORDER BY v.data DESC
         LIMIT 5
     """)
-    ultimos_checklists = [dict(r) for r in cur.fetchall()]
+    has_checklist_data = bool(meses_data)
+    has_critical_data = total_criticos > 0
+    has_combustivel_data = total_combustiveis > 0
+    has_manutencao_data = total_manutencoes > 0
 
     conn.close()
     return render_template(
@@ -438,11 +517,18 @@ def dashboard():
         total_checklists=total_checklists,
         total_carros=total_carros,
         total_motos=total_motos,
+        total_veiculos=total_veiculos,
         total_criticos=total_criticos,
         total_combustiveis=total_combustiveis,
         total_gasto_combustivel=total_gasto_combustivel,
         total_manutencoes=total_manutencoes,
+        manutencoes_pendentes=manutencoes_pendentes,
         total_gasto_manutencao=total_gasto_manutencao,
+        custo_total=custo_total,
+        has_checklist_data=has_checklist_data,
+        has_critical_data=has_critical_data,
+        has_combustivel_data=has_combustivel_data,
+        has_manutencao_data=has_manutencao_data,
         meses_labels=meses_labels,
         meses_data=meses_data,
         criticos_labels=criticos_labels,
@@ -745,15 +831,23 @@ def detalhes(veiculo_id):
         return redirect(url_for("historico"))
 
     indicadores = obter_todos_indicadores(veiculo_id)
+    checklist_score = avaliar_itens_checklist(reg.get("itens"))
 
-    return render_template("detalhes.html", reg=reg, indicadores=indicadores)
+    return render_template(
+        "detalhes.html",
+        reg=reg,
+        indicadores=indicadores,
+        checklist_score=checklist_score,
+    )
 
 
 @app.route("/checklist/editar/<int:veiculo_id>", methods=["GET", "POST"])
 @login_required
+@admin_required
 def editar_checklist(veiculo_id):
     """Edita um checklist existente"""
     try:
+        is_admin_user = bool(getattr(current_user, "is_admin", False) or getattr(current_user, "role", None) == "admin")
         reg = obter_registro(veiculo_id)
         if not reg:
             flash("Checklist não encontrado.", "error")
@@ -764,9 +858,11 @@ def editar_checklist(veiculo_id):
             conn = get_conn()
             cur = conn.cursor()
             
-            # Obter tipo do formulário (apenas admin pode mudar)
+            # Apenas admin pode mudar campos sensíveis
             novo_tipo = request.form.get('tipo')
-            tipo_final = novo_tipo if current_user.is_admin else reg.get('tipo')
+            tipo_final = novo_tipo if is_admin_user else reg.get('tipo')
+            novo_modelo = request.form.get('modelo')
+            modelo_final = novo_modelo if is_admin_user else reg.get('modelo')
             
             # Atualizar informações básicas do veículo
             cur.execute("""
@@ -776,7 +872,7 @@ def editar_checklist(veiculo_id):
                 WHERE id=?
             """, (
                 request.form.get('placa'),
-                request.form.get('modelo') or reg.get('modelo'),
+                modelo_final,
                 request.form.get('condutor'),
                 tipo_final,
                 request.form.get('quilometragem'),
@@ -789,6 +885,13 @@ def editar_checklist(veiculo_id):
             # Atualizar itens do checklist
             itens = request.form.getlist('itens[]')
             comentarios = request.form.getlist('comentarios[]')
+
+            # Preservar status antigo dos itens para não perder severidade na edição
+            cur.execute(
+                "SELECT nome_item, status FROM itens_checklist WHERE veiculo_id = ?",
+                (veiculo_id,),
+            )
+            status_anteriores = {row[0]: row[1] for row in cur.fetchall()}
             
             # Limpar itens antigos
             cur.execute("DELETE FROM itens_checklist WHERE veiculo_id = ?", (veiculo_id,))
@@ -797,10 +900,11 @@ def editar_checklist(veiculo_id):
             for i, item in enumerate(itens):
                 if item:
                     comentario = comentarios[i] if i < len(comentarios) else ""
+                    status_item = status_anteriores.get(item, "OK")
                     cur.execute("""
                         INSERT INTO itens_checklist (veiculo_id, nome_item, status, comentario)
                         VALUES (?, ?, ?, ?)
-                    """, (veiculo_id, item, "OK", comentario))
+                    """, (veiculo_id, item, status_item, comentario))
             
             conn.commit()
             conn.close()
@@ -836,7 +940,7 @@ def editar_checklist(veiculo_id):
             pneus=pneus,
             fluidos=fluidos,
             tipo_veiculo=tipo_veiculo,
-            is_admin=current_user.is_admin
+            is_admin=is_admin_user
         )
         
     except Exception as e:
@@ -846,6 +950,7 @@ def editar_checklist(veiculo_id):
 
 @app.route("/checklist/deletar/<int:veiculo_id>", methods=["POST"])
 @login_required
+@admin_required
 def deletar_checklist(veiculo_id):
     """Remove definitivamente o veículo e os itens do checklist associados"""
     try:
@@ -1115,7 +1220,7 @@ def api_veiculos():
             AND EXISTS (
                 SELECT 1 FROM itens_checklist it
                 WHERE it.veiculo_id = v.id
-                AND (it.status = 'Danificado' OR it.status IN ('Desgastado','Calibrar','Baixo','Alto'))
+                AND LOWER(TRIM(COALESCE(it.status, ''))) NOT IN ('ok', 'normal', 'conforme')
             )
         """
         # Ajuste: se where_sql vazio, crit_query terá 'AND EXISTS' sem WHERE; corrigimos montando condicionalmente
@@ -1126,7 +1231,7 @@ def api_veiculos():
                 AND EXISTS (
                     SELECT 1 FROM itens_checklist it
                     WHERE it.veiculo_id = v.id
-                    AND (it.status = 'Danificado' OR it.status IN ('Desgastado','Calibrar','Baixo','Alto'))
+                    AND LOWER(TRIM(COALESCE(it.status, ''))) NOT IN ('ok', 'normal', 'conforme')
                 )
             """
             cur.execute(crit_query, params)
@@ -1136,7 +1241,7 @@ def api_veiculos():
                 WHERE EXISTS (
                     SELECT 1 FROM itens_checklist it
                     WHERE it.veiculo_id = v.id
-                    AND (it.status = 'Danificado' OR it.status IN ('Desgastado','Calibrar','Baixo','Alto'))
+                    AND LOWER(TRIM(COALESCE(it.status, ''))) NOT IN ('ok', 'normal', 'conforme')
                 )
             """
             cur.execute(crit_query)
@@ -1152,7 +1257,7 @@ def api_veiculos():
                 AND EXISTS (
                     SELECT 1 FROM itens_checklist it
                     WHERE it.veiculo_id = v.id
-                    AND (it.status = 'Danificado' OR it.status IN ('Desgastado','Calibrar','Baixo','Alto'))
+                    AND LOWER(TRIM(COALESCE(it.status, ''))) NOT IN ('ok', 'normal', 'conforme')
                 )
                 ORDER BY v.id DESC
                 LIMIT ? OFFSET ?
@@ -1165,7 +1270,7 @@ def api_veiculos():
                 WHERE EXISTS (
                     SELECT 1 FROM itens_checklist it
                     WHERE it.veiculo_id = v.id
-                    AND (it.status = 'Danificado' OR it.status IN ('Desgastado','Calibrar','Baixo','Alto'))
+                    AND LOWER(TRIM(COALESCE(it.status, ''))) NOT IN ('ok', 'normal', 'conforme')
                 )
                 ORDER BY v.id DESC
                 LIMIT ? OFFSET ?
@@ -2678,6 +2783,16 @@ def relatorio_combustivel():
     # Agrupar por placa e calcular subtotais
     veiculos = {}
     for reg in resultados:
+        reg["quantidade_litros"] = _to_float(reg.get("quantidade_litros"), 0.0)
+        reg["valor_total"] = _to_float(reg.get("valor_total"), 0.0)
+
+        quilometragem = reg.get("quilometragem")
+        reg["quilometragem"] = (
+            _to_float(quilometragem, 0.0)
+            if quilometragem not in (None, "")
+            else None
+        )
+
         placa = reg.get("placa") or "Sem Placa"
         if placa not in veiculos:
             veiculos[placa] = {
@@ -2688,19 +2803,9 @@ def relatorio_combustivel():
                 "total_valor": 0.0
             }
         veiculos[placa]["registros"].append(reg)
-        
-        # Converter para float com segurança
-        try:
-            litros = float(reg.get("quantidade_litros") or 0)
-            valor = float(reg.get("valor_total") or 0)
-            veiculos[placa]["total_litros"] += litros
-            veiculos[placa]["total_valor"] += valor
-        except (ValueError, TypeError) as e:
-            print(f"Erro ao converter valores: {e}, reg: {reg}")
-            # Usar valores padrão em caso de erro
-            veiculos[placa]["total_litros"] += 0.0
-            veiculos[placa]["total_valor"] += 0.0
-    
+        veiculos[placa]["total_litros"] += reg["quantidade_litros"]
+        veiculos[placa]["total_valor"] += reg["valor_total"]
+
     return render_template("combustivel/relatorio.html", veiculos=veiculos, resultados=resultados)
 
 
@@ -5670,4 +5775,5 @@ if __name__ == "__main__":
     with app.app_context():
         create_admin_user()
 
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    debug_enabled = os.environ.get("FLASK_DEBUG", os.environ.get("DEBUG", "false")).lower() in {"1", "true", "yes", "on"}
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_enabled)

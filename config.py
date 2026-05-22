@@ -4,7 +4,14 @@ from datetime import timedelta
 
 # Configurações do aplicativo
 APP_ROOT = os.path.abspath(os.path.dirname(__file__))
-SECRET_KEY = os.environ.get('SECRET_KEY') or 'sua-chave-secreta-aqui'
+IS_PRODUCTION = os.environ.get('FLASK_ENV', '').lower() == 'production'
+SECRET_KEY = os.environ.get('SECRET_KEY')
+
+if IS_PRODUCTION and not SECRET_KEY:
+    raise RuntimeError('SECRET_KEY deve ser configurada em produção')
+
+if not SECRET_KEY:
+    SECRET_KEY = 'dev-secret-key-change-me'
 
 # Configurações do banco de dados
 DATA_DIR = os.path.join(APP_ROOT, "data")

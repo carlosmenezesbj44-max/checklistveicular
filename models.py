@@ -1,8 +1,23 @@
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_conn
+import sqlite3
+import time
 
 class User(UserMixin):
+    @staticmethod
+    def _run_with_lock_retry(operation, max_attempts=3, delay_seconds=0.3):
+        last_error = None
+        for attempt in range(max_attempts):
+            try:
+                return operation()
+            except sqlite3.OperationalError as e:
+                last_error = e
+                if "database is locked" not in str(e).lower() or attempt == max_attempts - 1:
+                    raise
+                time.sleep(delay_seconds * (attempt + 1))
+        raise last_error
+
     def __init__(self, id, username, password_hash, email=None, is_admin=False, is_active=True, reset_token=None, reset_token_expiration=None, role=None, profile_photo=None):
         self.id = id
         self.username = username
@@ -25,53 +40,65 @@ class User(UserMixin):
 
     @staticmethod
     def get(user_id):
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT id, username, password_hash, email, is_admin, 
-                   reset_token, reset_token_expiration, role, profile_photo, is_active 
-            FROM users WHERE id = ?
-        """, (user_id,))
-        user_data = cur.fetchone()
-        if not user_data:
-            return None
-        return User(
-            id=user_data[0],
-            username=user_data[1],
-            password_hash=user_data[2],
-            email=user_data[3],
-            is_admin=bool(user_data[4]),
-            reset_token=user_data[5],
-            reset_token_expiration=user_data[6],
-            role=user_data[7],
-            profile_photo=user_data[8],
-            is_active=bool(user_data[9])
-        )
+        def _op():
+            conn = get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT id, username, password_hash, email, is_admin, 
+                           reset_token, reset_token_expiration, role, profile_photo, is_active 
+                    FROM users WHERE id = ?
+                """, (user_id,))
+                user_data = cur.fetchone()
+                if not user_data:
+                    return None
+                return User(
+                    id=user_data[0],
+                    username=user_data[1],
+                    password_hash=user_data[2],
+                    email=user_data[3],
+                    is_admin=bool(user_data[4]),
+                    reset_token=user_data[5],
+                    reset_token_expiration=user_data[6],
+                    role=user_data[7],
+                    profile_photo=user_data[8],
+                    is_active=bool(user_data[9])
+                )
+            finally:
+                conn.close()
+
+        return User._run_with_lock_retry(_op)
 
     @staticmethod
     def find_by_username(username):
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT id, username, password_hash, email, is_admin, 
-                   reset_token, reset_token_expiration, role, profile_photo, is_active 
-            FROM users WHERE username = ?
-        """, (username,))
-        user_data = cur.fetchone()
-        if not user_data:
-            return None
-        return User(
-            id=user_data[0],
-            username=user_data[1],
-            password_hash=user_data[2],
-            email=user_data[3],
-            is_admin=bool(user_data[4]),
-            reset_token=user_data[5],
-            reset_token_expiration=user_data[6],
-            role=user_data[7],
-            profile_photo=user_data[8],
-            is_active=bool(user_data[9])
-        )
+        def _op():
+            conn = get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT id, username, password_hash, email, is_admin, 
+                           reset_token, reset_token_expiration, role, profile_photo, is_active 
+                    FROM users WHERE username = ?
+                """, (username,))
+                user_data = cur.fetchone()
+                if not user_data:
+                    return None
+                return User(
+                    id=user_data[0],
+                    username=user_data[1],
+                    password_hash=user_data[2],
+                    email=user_data[3],
+                    is_admin=bool(user_data[4]),
+                    reset_token=user_data[5],
+                    reset_token_expiration=user_data[6],
+                    role=user_data[7],
+                    profile_photo=user_data[8],
+                    is_active=bool(user_data[9])
+                )
+            finally:
+                conn.close()
+
+        return User._run_with_lock_retry(_op)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -191,31 +218,34 @@ class User(UserMixin):
     @staticmethod
     def get_all_users():
         conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT id, username, password_hash, email, is_admin, 
-                   reset_token, reset_token_expiration, role, profile_photo, is_active 
-            FROM users
-            ORDER BY username
-        """)
-        
-        rows = cur.fetchall()
-        users = []
-        for row in rows:
-            users.append(User(
-                id=row[0],
-                username=row[1],
-                password_hash=row[2],
-                email=row[3],
-                is_admin=bool(row[4]),
-                reset_token=row[5],
-                reset_token_expiration=row[6],
-                role=row[7],
-                profile_photo=row[8],
-                is_active=bool(row[9])
-            ))
-        
-        return users
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, username, password_hash, email, is_admin, 
+                       reset_token, reset_token_expiration, role, profile_photo, is_active 
+                FROM users
+                ORDER BY username
+            """)
+            
+            rows = cur.fetchall()
+            users = []
+            for row in rows:
+                users.append(User(
+                    id=row[0],
+                    username=row[1],
+                    password_hash=row[2],
+                    email=row[3],
+                    is_admin=bool(row[4]),
+                    reset_token=row[5],
+                    reset_token_expiration=row[6],
+                    role=row[7],
+                    profile_photo=row[8],
+                    is_active=bool(row[9])
+                ))
+            
+            return users
+        finally:
+            conn.close()
     
     def toggle_active(self):
         self.is_active = not self.is_active
@@ -234,15 +264,30 @@ class User(UserMixin):
     @staticmethod
     def delete(user_id):
         """Deletar um usuário pelo ID"""
-        conn = get_conn()
-        cur = conn.cursor()
-        
-        # Deletar o usuário
-        cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
-        
-        conn.commit()
-        conn.close()
-        return True
+        def _op():
+            conn = get_conn()
+            try:
+                cur = conn.cursor()
+
+                try:
+                    # Remover vínculos de permissões antes de deletar o usuário
+                    cur.execute("DELETE FROM user_roles WHERE user_id = ?", (user_id,))
+                    cur.execute("UPDATE user_roles SET assigned_by = NULL WHERE assigned_by = ?", (user_id,))
+                except Exception:
+                    # Bancos antigos podem ainda não ter a tabela de roles
+                    pass
+
+                # Deletar o usuário
+                cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                conn.commit()
+                return True
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+
+        return User._run_with_lock_retry(_op, max_attempts=5, delay_seconds=0.4)
 
 
 class Manutencao:
