@@ -4479,23 +4479,36 @@ def cadastrar_condutor():
             observacoes = request.form.get("observacoes", "").strip()
             
             # Validações básicas
-            if not nome or not cpf or not data_nascimento or not telefone or not email:
-                flash("Nome, CPF, data de nascimento, telefone e e-mail são obrigatórios", "error")
+            if not nome or not data_nascimento or not telefone or not email:
+                flash("Nome, data de nascimento, telefone e e-mail são obrigatórios", "error")
                 return render_template("cadastrar_condutor.html")
-            
-            if not numero_cnh or not categoria_cnh or not data_emissao_cnh or not data_validade_cnh:
-                flash("Número da CNH, categoria, data de emissão e data de validade são obrigatórios", "error")
+
+            if not cpf and not rg:
+                flash("Informe CPF ou RG para cadastrar o condutor", "error")
                 return render_template("cadastrar_condutor.html")
-            
+
+            cnh_informada = any([numero_cnh, categoria_cnh, data_emissao_cnh, data_validade_cnh])
+            if cnh_informada and not all([numero_cnh, categoria_cnh, data_emissao_cnh, data_validade_cnh]):
+                flash("Para cadastrar CNH, informe número, categoria, data de emissão e data de validade", "error")
+                return render_template("cadastrar_condutor.html")
+
             conn = get_conn()
             cur = conn.cursor()
             
-            # Verificar se condutor já existe pelo CPF
-            cur.execute("SELECT id FROM condutores WHERE cpf = ?", (cpf,))
-            if cur.fetchone():
-                conn.close()
-                flash("Condutor com este CPF já existe", "error")
-                return render_template("cadastrar_condutor.html")
+            # Verificar se condutor já existe pelo CPF ou RG
+            if cpf:
+                cur.execute("SELECT id FROM condutores WHERE cpf = ?", (cpf,))
+                if cur.fetchone():
+                    conn.close()
+                    flash("Condutor com este CPF já existe", "error")
+                    return render_template("cadastrar_condutor.html")
+
+            if rg:
+                cur.execute("SELECT id FROM condutores WHERE rg = ?", (rg,))
+                if cur.fetchone():
+                    conn.close()
+                    flash("Condutor com este RG já existe", "error")
+                    return render_template("cadastrar_condutor.html")
             
             # Salvar foto se fornecida
             foto_filename = None
@@ -4512,8 +4525,8 @@ def cadastrar_condutor():
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    nome, cpf, rg, data_nascimento, endereco, telefone, email, foto_filename,
-                    numero_cnh, categoria_cnh, data_emissao_cnh, data_validade_cnh, observacoes
+                    nome, cpf or None, rg or None, data_nascimento, endereco, telefone, email, foto_filename,
+                    numero_cnh or None, categoria_cnh or None, data_emissao_cnh or None, data_validade_cnh or None, observacoes
                 )
             )
             

@@ -37,10 +37,10 @@
 
               <div class="col-md-6">
                  <label class="form-label fw-semibold">
-                   <i class="bi bi-card-text me-2"></i>CPF *
+                   <i class="bi bi-card-text me-2"></i>CPF
                  </label>
                  <div class="position-relative">
-                   <input type="text" class="form-control" id="cpf" name="cpf" required
+                   <input type="text" class="form-control" id="cpf" name="cpf"
                           placeholder="000.000.000-00" maxlength="14">
                    <div id="cpfStatus" class="mt-2 alert d-none" role="alert"></div>
                  </div>
@@ -120,17 +120,17 @@
             <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <label class="form-label fw-semibold">
-                  <i class="bi bi-card-heading me-2"></i>Número da CNH *
+                  <i class="bi bi-card-heading me-2"></i>Número da CNH
                 </label>
-                <input type="text" class="form-control" id="numero_cnh" name="numero_cnh" required
+                <input type="text" class="form-control" id="numero_cnh" name="numero_cnh"
                        placeholder="Digite o número da CNH">
               </div>
 
               <div class="col-md-6">
                 <label class="form-label fw-semibold">
-                  <i class="bi bi-list-check me-2"></i>Categoria *
+                  <i class="bi bi-list-check me-2"></i>Categoria
                 </label>
-                <select class="form-select" id="categoria_cnh" name="categoria_cnh" required>
+                <select class="form-select" id="categoria_cnh" name="categoria_cnh">
                   <option value="">Selecione...</option>
                   <option value="A">A - Moto</option>
                   <option value="B">B - Carro</option>
@@ -145,25 +145,25 @@
             <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <label class="form-label fw-semibold">
-                  <i class="bi bi-calendar-event me-2"></i>Data de Emissão *
+                  <i class="bi bi-calendar-event me-2"></i>Data de Emissão
                 </label>
-                <input type="date" class="form-control" id="data_emissao_cnh" name="data_emissao_cnh" required>
+                <input type="date" class="form-control" id="data_emissao_cnh" name="data_emissao_cnh">
               </div>
 
               <div class="col-md-6">
                 <label class="form-label fw-semibold">
-                  <i class="bi bi-calendar-check me-2"></i>Data de Validade *
+                  <i class="bi bi-calendar-check me-2"></i>Data de Validade
                 </label>
-                <input type="date" class="form-control" id="data_validade_cnh" name="data_validade_cnh" required>
+                <input type="date" class="form-control" id="data_validade_cnh" name="data_validade_cnh">
               </div>
             </div>
 
             <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <label class="form-label fw-semibold">
-                  <i class="bi bi-building me-2"></i>Órgão Emissor *
+                  <i class="bi bi-building me-2"></i>Órgão Emissor
                 </label>
-                <input type="text" class="form-control" id="orgao_emissor" name="orgao_emissor" required
+                <input type="text" class="form-control" id="orgao_emissor" name="orgao_emissor"
                        placeholder="Ex: DETRAN-SP">
               </div>
 
@@ -396,6 +396,7 @@
 <script>
   // Validação em tempo real do CPF
   const cpfInput = document.getElementById('cpf');
+  const rgInput = document.getElementById('rg');
   const cpfStatus = document.getElementById('cpfStatus');
   const submitBtn = document.getElementById('submitBtn');
   const form = document.querySelector('form');
@@ -438,7 +439,7 @@
       .then(data => {
         if (data.existe) {
           // CPF já existe
-          cpfStatus.textContent = '⚠️ ' + data.mensagem;
+          cpfStatus.textContent = data.mensagem;
           cpfStatus.classList.remove('d-none', 'alert-success');
           cpfStatus.classList.add('alert-warning');
           cpfInput.classList.add('is-invalid');
@@ -457,7 +458,7 @@
       })
       .catch(error => {
         console.error('Erro ao verificar CPF:', error);
-        cpfStatus.textContent = '❌ Erro ao verificar CPF';
+        cpfStatus.textContent = 'Erro ao verificar CPF';
         cpfStatus.classList.remove('d-none');
         cpfStatus.classList.add('alert-danger');
         cpfValido = false;
@@ -482,11 +483,20 @@
   // Impedir submissão se CPF é inválido
   form.addEventListener('submit', function(e) {
     const cpf = cpfInput.value.trim();
+    const rg = rgInput.value.trim();
     const cpfLimpo = cpf.replace(/\D/g, '');
-    
+
+    if (!cpf && !rg) {
+      e.preventDefault();
+      cpfStatus.textContent = 'Informe CPF ou RG antes de salvar';
+      cpfStatus.classList.remove('d-none', 'alert-success', 'alert-warning');
+      cpfStatus.classList.add('alert-danger');
+      return false;
+    }
+
     if (cpfLimpo.length === 11 && !cpfValido) {
       e.preventDefault();
-      cpfStatus.textContent = '❌ Por favor, verifique o CPF antes de salvar';
+      cpfStatus.textContent = 'Por favor, verifique o CPF antes de salvar';
       cpfStatus.classList.remove('d-none', 'alert-success', 'alert-warning');
       cpfStatus.classList.add('alert-danger');
       return false;
