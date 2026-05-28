@@ -59,7 +59,6 @@ from services import (
     calcular_tempo_medio_manutencao,
     calcular_taxa_danificacao,
     obter_todos_indicadores,
-    salvar_condutor,
     listar_condutores,
     obter_condutor,
     adicionar_infracao,
@@ -79,6 +78,7 @@ from services import (
     obter_benchmarking_veiculos,
     obter_benchmarking_condutores,
     avaliar_itens_checklist,
+    _save_file_storage,
 )
 from config import (
     ANEXOS_DIR,
@@ -2832,13 +2832,96 @@ def listar_condutores_rota():
         return render_template("condutores/listar.html", condutores=[], page=1, total_pages=0, total=0)
 
 
+def salvar_condutor_form(form, files, condutor_id=None):
+    """Salva ou atualiza condutor pelo formulário completo."""
+    nome = (form.get("nome_completo") or form.get("nome") or "").strip()
+    if not nome:
+        raise ValueError("Nome é obrigatório")
+
+    cpf = (form.get("cpf") or "").strip() or None
+    rg = (form.get("rg") or "").strip() or None
+    data_nascimento = (form.get("data_nascimento") or "").strip() or None
+    endereco = (form.get("endereco") or "").strip() or None
+    telefone = (form.get("telefone") or "").strip() or None
+    email = (form.get("email") or "").strip() or None
+    cnh_numero = (form.get("cnh_numero") or "").strip() or None
+    cnh_categoria = (form.get("cnh_categoria") or "").strip() or None
+    cnh_data_emissao = (form.get("cnh_data_emissao") or "").strip() or None
+    cnh_data_validade = (form.get("cnh_data_validade") or "").strip() or None
+    exame_toxicologico_data = (form.get("exame_toxicologico_data") or "").strip() or None
+    exame_medico_data = (form.get("exame_medico_data") or "").strip() or None
+    notas = (form.get("notas") or form.get("observacoes") or "").strip() or None
+
+    foto_filename = None
+    foto_condutor = files.get("foto_condutor") if files else None
+    if foto_condutor and foto_condutor.filename:
+        foto_filename, _ = _save_file_storage(foto_condutor, prefix="condutor")
+
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        if cpf:
+            if condutor_id:
+                cur.execute("SELECT id FROM condutores WHERE cpf = ? AND id <> ?", (cpf, condutor_id))
+            else:
+                cur.execute("SELECT id FROM condutores WHERE cpf = ?", (cpf,))
+            if cur.fetchone():
+                raise ValueError("Este CPF já está cadastrado")
+
+        if cnh_numero:
+            if condutor_id:
+                cur.execute("SELECT id FROM condutores WHERE cnh_numero = ? AND id <> ?", (cnh_numero, condutor_id))
+            else:
+                cur.execute("SELECT id FROM condutores WHERE cnh_numero = ?", (cnh_numero,))
+            if cur.fetchone():
+                raise ValueError("Esta CNH já está cadastrada")
+
+        if condutor_id:
+            campos = [
+                "nome_completo = ?", "cpf = ?", "rg = ?", "data_nascimento = ?", "endereco = ?",
+                "telefone = ?", "email = ?", "cnh_numero = ?", "cnh_categoria = ?",
+                "cnh_data_emissao = ?", "cnh_data_validade = ?", "exame_toxicologico_data = ?",
+                "exame_medico_data = ?", "notas = ?", "updated_at = CURRENT_TIMESTAMP"
+            ]
+            valores = [
+                nome, cpf, rg, data_nascimento, endereco, telefone, email, cnh_numero, cnh_categoria,
+                cnh_data_emissao, cnh_data_validade, exame_toxicologico_data, exame_medico_data, notas
+            ]
+            if foto_filename:
+                campos.insert(-1, "foto_condutor = ?")
+                valores.append(foto_filename)
+            valores.append(condutor_id)
+            cur.execute(f"UPDATE condutores SET {', '.join(campos)} WHERE id = ?", valores)
+        else:
+            cur.execute(
+                """
+                INSERT INTO condutores (
+                    nome_completo, cpf, rg, data_nascimento, endereco, telefone, email, foto_condutor,
+                    cnh_numero, cnh_categoria, cnh_data_emissao, cnh_data_validade,
+                    exame_toxicologico_data, exame_medico_data, notas, ativo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                """,
+                (
+                    nome, cpf, rg, data_nascimento, endereco, telefone, email, foto_filename,
+                    cnh_numero, cnh_categoria, cnh_data_emissao, cnh_data_validade,
+                    exame_toxicologico_data, exame_medico_data, notas,
+                ),
+            )
+            condutor_id = cur.lastrowid
+
+        conn.commit()
+        return condutor_id
+    finally:
+        conn.close()
+
+
 @app.route("/condutores/novo", methods=["GET", "POST"])
 @login_required
 def novo_condutor():
     """Cria um novo condutor"""
     if request.method == "POST":
         try:
-            condutor_id = salvar_condutor(request.form, request.files)
+            condutor_id = salvar_condutor_form(request.form, request.files)
             if condutor_id:
                 flash("Condutor cadastrado com sucesso!", "success")
                 return redirect(url_for("detalhes_condutor", condutor_id=condutor_id))
@@ -2861,7 +2944,7 @@ def editar_condutor(condutor_id):
 
     if request.method == "POST":
         try:
-            salvar_condutor(request.form, request.files)
+            salvar_condutor_form(request.form, request.files, condutor_id)
             flash("Condutor atualizado com sucesso!", "success")
             return redirect(url_for("detalhes_condutor", condutor_id=condutor_id))
         except Exception as e:
@@ -4322,7 +4405,7 @@ def validar_condutor(field, value):
 
 @app.route("/salvar-condutor", methods=["POST"])
 @login_required
-def salvar_condutor():
+def salvar_condutor_modal():
     """Salva um novo condutor via formulário modal"""
     try:
         # O formulário envia como 'nome', não 'nome_completo'
@@ -4487,9 +4570,9 @@ def cadastrar_condutor():
                 flash("Informe CPF ou RG para cadastrar o condutor", "error")
                 return render_template("cadastrar_condutor.html")
 
-            cnh_informada = any([numero_cnh, categoria_cnh, data_emissao_cnh, data_validade_cnh])
-            if cnh_informada and not all([numero_cnh, categoria_cnh, data_emissao_cnh, data_validade_cnh]):
-                flash("Para cadastrar CNH, informe número, categoria, data de emissão e data de validade", "error")
+            cnh_informada = any([categoria_cnh, data_emissao_cnh, data_validade_cnh])
+            if cnh_informada and not all([categoria_cnh, data_emissao_cnh, data_validade_cnh]):
+                flash("Para cadastrar CNH, informe categoria, data de emissão e data de validade", "error")
                 return render_template("cadastrar_condutor.html")
 
             conn = get_conn()
